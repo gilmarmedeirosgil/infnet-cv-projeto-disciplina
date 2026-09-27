@@ -1,28 +1,28 @@
 [
  {
   "cell": 2,
-  "first_line": "!pip install -q kagglehub",
-  "output": ""
+  "first_line": "import time",
+  "output": "\u001b[?25l   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m0.0/296.7 kB\u001b[0m \u001b[31m?\u001b[0m eta \u001b[36m-:--:--\u001b[0m\r\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m296.7/296.7 kB\u001b[0m \u001b[31m20.0 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n\u001b[?25hpip: 7.1s\n"
  },
  {
   "cell": 3,
-  "first_line": "import os, gc, copy, json, time, random, hashlib",
-  "output": "PyTorch 2.11.0+cu128 | torchvision 0.26.0+cu128 | device: cuda\nGPU: Tesla T4 | VRAM total: 14.56 GB\n"
+  "first_line": "import os, gc, copy, json, time, random, hashlib, resource",
+  "output": "PyTorch 2.11.0+cu128 | torchvision 0.26.0+cu128 | device: cuda\nGPU: Tesla T4 | VRAM total: 14.56 GB\nRAM: {'ram_rss_mb': 852, 'ram_maxrss_mb': 852, 'ram_maxrss_children_mb': 103}\n"
  },
  {
   "cell": 4,
   "first_line": "try:",
-  "output": "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\nArtefatos em: /content/drive/MyDrive/infnet_cv_projeto/outputs/A3\n"
+  "output": "Mounted at /content/drive\nArtefatos em: /content/drive/MyDrive/infnet_cv_projeto/outputs/A3\n"
  },
  {
   "cell": 5,
   "first_line": "def load_kaggle_credentials():",
-  "output": "Secrets do Kaggle carregados: ['KAGGLE_USERNAME', 'KAGGLE_KEY', 'KAGGLE_API_TOKEN']\nUsing Colab cache for faster access to the 'images-dataset' dataset.\nDataset em: /kaggle/input/images-dataset\n"
+  "output": "Secrets do Kaggle carregados: ['KAGGLE_USERNAME', 'KAGGLE_KEY', 'KAGGLE_API_TOKEN']\nDownloading to /root/.cache/kagglehub/datasets/pavansanagapati/images-dataset/1.archive...\n\n100%|██████████| 1.01G/1.01G [00:53<00:00, 20.5MB/s]\nExtracting files...\n\n\n\nDataset em: /root/.cache/kagglehub/datasets/pavansanagapati/images-dataset/versions/1 | download/cache: 75.5s\n"
  },
  {
   "cell": 7,
   "first_line": "IMG_EXT = {\".jpg\", \".jpeg\", \".png\", \".bmp\", \".gif\", \".webp\", \".tif\", \".tiff\", \".jfif\"}",
-  "output": "Raiz: /kaggle/input/images-dataset/data | classes: ['bike', 'cars', 'cats', 'dogs', 'flowers', 'horses', 'human']\n"
+  "output": "Raiz: /root/.cache/kagglehub/datasets/pavansanagapati/images-dataset/versions/1/data | classes: ['bike', 'cars', 'cats', 'dogs', 'flowers', 'horses', 'human']\n"
  },
  {
   "cell": 8,
@@ -30,98 +30,113 @@
   "output": "Arquivos de imagem: 1803 | corrompidos: 0 | não-imagem ignorados: 0\n\nFormato: {'JPEG': 808, 'BMP': 785, 'PNG': 210}\nModo de cor: {'RGB': 1593, 'RGBA': 210}\nExtensão: {'.jpg': 808, '.bmp': 785, '.png': 210}\n\nModo de cor por classe:\n mode     RGB  RGBA\ncls               \nbike     365     0\ncars     420     0\ncats     202     0\ndogs     202     0\nflowers    0   210\nhorses   202     0\nhuman    202     0\n"
  },
  {
-  "cell": 9,
-  "first_line": "md5_classes = df_ok.groupby(\"md5\").cls.nunique()",
-  "output": "Duplicatas exatas removidas: 39 (hashes em mais de uma classe, removidos por completo: 0)\nImagens válidas e únicas: 1764\n           n     %\ncls               \nbike     364  20.6\ncars     420  23.8\ncats     202  11.5\ndogs     202  11.5\nflowers  210  11.9\nhorses   183  10.4\nhuman    183  10.4\nRazão de desbalanceamento (maior/menor): 2.30\n"
- },
- {
   "cell": 10,
-  "first_line": "# fig: class_counts",
-  "output": "[figura]"
- },
- {
-  "cell": 11,
-  "first_line": "# fig: samples_grid",
-  "output": "[figura]"
+  "first_line": "def alpha_fraction(path):",
+  "output": "Imagens com canal alfa: 210\n         n_images_with_alpha  mean_frac_alpha_lt_255  max_frac_alpha_lt_255  n_images_any_transparent\nflowers                210.0                     0.0                    0.0                       0.0\n"
  },
  {
   "cell": 12,
-  "first_line": "# fig: image_sizes",
-  "output": "         width  height  aspect\ncls                           \nbike     640.0   480.0    1.33\ncars     640.0   480.0    1.33\ncats     460.0   374.0    1.33\ndogs     439.5   374.0    1.25\nflowers  128.0   128.0    1.00\nhorses   259.0   194.0    1.34\nhuman    188.0   256.0    0.73\n\n[figura]"
+  "first_line": "md5_classes = df_ok.groupby(\"md5\").cls.nunique()",
+  "output": "Duplicatas exatas removidas: 39 (hashes em mais de uma classe, removidos por completo: 0)\nImagens válidas e únicas: 1764\n           n     %\ncls               \nbike     364  20.6\ncars     420  23.8\ncats     202  11.5\ndogs     202  11.5\nflowers  210  11.9\nhorses   183  10.4\nhuman    183  10.4\nRazão de desbalanceamento (maior/menor): 2.30\n{\n \"bike\": {\n  \"n\": 364,\n  \"formats\": {\n   \"BMP\": 364\n  },\n  \"modes\": {\n   \"RGB\": 364\n  },\n  \"median_width\": 640.0,\n  \"median_height\": 480.0\n },\n \"cars\": {\n  \"n\": 420,\n  \"formats\": {\n   \"BMP\": 420\n  },\n  \"modes\": {\n   \"RGB\": 420\n  },\n  \"median_width\": 640.0,\n  \"median_height\": 480.0\n },\n \"cats\": {\n  \"n\": 202,\n  \"formats\": {\n   \"JPEG\": 202\n  },\n  \"modes\": {\n   \"RGB\": 202\n  },\n  \"median_width\": 460.0,\n  \"median_height\": 374.0\n },\n \"dogs\": {\n  \"n\": 202,\n  \"formats\": {\n   \"JPEG\": 202\n  },\n  \"modes\": {\n   \"RGB\": 202\n  },\n  \"median_width\": 439.5,\n  \"median_height\": 374.0\n },\n \"flowers\": {\n  \"n\": 210,\n  \"formats\": {\n   \"PNG\": 210\n  },\n  \"modes\": {\n   \"RGBA\": 210\n  },\n  \"median_width\": 128.0,\n  \"median_height\": 128.0\n },\n \"horses\": {\n  \"n\": 183,\n  \"formats\": {\n   \"JPEG\": 183\n  },\n  \"modes\": {\n   \"RGB\": 183\n  },\n  \"median_width\": 259.0,\n  \"median_height\": 194.0\n },\n \"human\": {\n  \"n\": 183,\n  \"formats\": {\n   \"JPEG\": 183\n  },\n  \"modes\": {\n   \"RGB\": 183\n  },\n  \"median_width\": 188.0,\n  \"median_height\": 256.0\n }\n}\n"
+ },
+ {
+  "cell": 13,
+  "first_line": "# fig: class_counts",
+  "output": "A3_class_counts.png: 55 KB (dpi 150)\n\n[figura]"
+ },
+ {
+  "cell": 14,
+  "first_line": "# fig: samples_grid",
+  "output": "A3_samples_grid.png: 840 KB (dpi 80)\n\n[figura]"
  },
  {
   "cell": 15,
+  "first_line": "# fig: image_sizes",
+  "output": "         width  height  aspect\ncls                           \nbike     640.0   480.0    1.33\ncars     640.0   480.0    1.33\ncats     460.0   374.0    1.33\ndogs     439.5   374.0    1.25\nflowers  128.0   128.0    1.00\nhorses   259.0   194.0    1.34\nhuman    188.0   256.0    0.73\nA3_image_sizes.png: 104 KB (dpi 150)\n\n[figura]"
+ },
+ {
+  "cell": 18,
   "first_line": "train_df, temp_df = train_test_split(df, test_size=0.30, stratify=df.label, random_state=SEED)",
   "output": "         train  val  test\ncls                      \nbike       255   55    54\ncars       294   63    63\ncats       141   31    30\ndogs       141   30    31\nflowers    147   31    32\nhorses     128   27    28\nhuman      128   28    27\nTOTAL     1234  265   265\n"
  },
  {
-  "cell": 17,
+  "cell": 20,
+  "first_line": "PHASH_THRESHOLD = 4",
+  "output": "pHash de 1764 imagens em 4.7s\nPares com Hamming ≤ 4: 22 (rótulos diferentes: 0)\ntrain×train    12\nval×val         0\ntest×test       1\ntrain×val       6\ntrain×test      3\nval×test        0\n\nPor classe (classe da imagem a):\n pair    test×test  train×test  train×train  train×val\ncls_a                                                \nbike            0           1            2          1\ndogs            0           0            0          1\nhorses          1           0            3          2\nhuman           0           2            7          2\n\nImagens de teste com quase-duplicata no treino: 3 de 265\n"
+ },
+ {
+  "cell": 21,
+  "first_line": "# fig: near_duplicates",
+  "output": "A3_near_duplicates.png: 660 KB (dpi 60)\n\n[figura]"
+ },
+ {
+  "cell": 24,
   "first_line": "def meta_row(name, weights):",
   "output": "         modelo         pesos  params (M)  GFLOPs  ImageNet top-1 (%)  tamanho arquivo (MB)\nEfficientNet-B0 IMAGENET1K_V1        5.29   0.386              77.692                20.451\n      ResNet-50 IMAGENET1K_V1       25.56   4.089              76.130                97.781\n      ResNet-50 IMAGENET1K_V2       25.56   4.089              80.858                97.790\n"
  },
  {
-  "cell": 18,
+  "cell": 25,
   "first_line": "ARCHS = {\"efficientnet_b0\": efficientnet_b0, \"resnet50\": resnet50}",
-  "output": "         modelo                 modo  params treináveis  ms/passo (batch 64)  VRAM pico (MB)\nefficientnet_b0   feature extraction               8967                 68.5             707\nefficientnet_b0 fine-tuning completo            4016515                280.4            5550\n       resnet50   feature extraction              14343                166.5             783\n       resnet50 fine-tuning completo           23522375                596.0            5611\n"
+  "output": "         modelo                 modo  params treináveis  ms/passo (batch 64)  VRAM pico (MB)  VRAM reservada pico (MB)\nefficientnet_b0   feature extraction               8967                 67.6             707                       956\nefficientnet_b0 fine-tuning completo            4016515                276.7            5550                      6118\n       resnet50   feature extraction              14343                162.7             783                      1190\n       resnet50 fine-tuning completo           23522375                585.0            5611                      6104\n"
  },
  {
-  "cell": 21,
+  "cell": 28,
   "first_line": "WEIGHTS = EfficientNet_B0_Weights.IMAGENET1K_V1",
   "output": "ImageClassification(\n    crop_size=[224]\n    resize_size=[256]\n    mean=[0.485, 0.456, 0.406]\n    std=[0.229, 0.224, 0.225]\n    interpolation=InterpolationMode.BICUBIC\n)\nbatch: (64, 3, 224, 224) torch.float32 | média 0.010 desvio 1.061 (normalizado)\n"
  },
  {
-  "cell": 22,
+  "cell": 29,
   "first_line": "model = efficientnet_b0(weights=WEIGHTS)",
-  "output": "Downloading: \"https://download.pytorch.org/models/efficientnet_b0_rwightman-7f5810bc.pth\" to /root/.cache/torch/hub/checkpoints/efficientnet_b0_rwightman-7f5810bc.pth\n\n100%|██████████| 20.5M/20.5M [00:00<00:00, 62.1MB/s]\n\nSequential(\n  (0): Dropout(p=0.2, inplace=True)\n  (1): Linear(in_features=1280, out_features=7, bias=True)\n)\nParâmetros totais: 4,016,515 | treináveis: 8,967 (0.22%)\nParâmetros treináveis: ['classifier.1.weight', 'classifier.1.bias']\n"
+  "output": "Downloading: \"https://download.pytorch.org/models/efficientnet_b0_rwightman-7f5810bc.pth\" to /root/.cache/torch/hub/checkpoints/efficientnet_b0_rwightman-7f5810bc.pth\n\n100%|██████████| 20.5M/20.5M [00:00<00:00, 185MB/s]\nSequential(\n  (0): Dropout(p=0.2, inplace=True)\n  (1): Linear(in_features=1280, out_features=7, bias=True)\n)\nParâmetros totais: 4,016,515 | treináveis: 8,967 (0.22%)\nParâmetros treináveis: ['classifier.1.weight', 'classifier.1.bias']\n\n\n"
  },
  {
-  "cell": 23,
+  "cell": 30,
   "first_line": "set_head_train_mode(model)",
   "output": "Parâmetros que receberam gradiente: ['classifier.1.weight', 'classifier.1.bias']\nOK: só o head tem gradiente; snapshot do backbone (pesos + estatísticas do BN) guardado.\n"
  },
  {
-  "cell": 25,
+  "cell": 32,
   "first_line": "EPOCHS, LR, WD, PATIENCE = 15, 1e-3, 1e-4, 4",
   "output": ""
  },
  {
-  "cell": 26,
-  "first_line": "history, best_val_loss, best_epoch, bad_epochs = [], float(\"inf\"), 0, 0",
-  "output": "ep  1 | lr 1.00e-03 | train loss 1.0579 acc  80.23% | val loss 0.4002 acc  98.11% |   9.4s *\nep  2 | lr 9.89e-04 | train loss 0.2592 acc  98.14% | val loss 0.1608 acc  99.25% |   9.8s *\nep  3 | lr 9.57e-04 | train loss 0.1332 acc  98.70% | val loss 0.1104 acc  99.25% |  10.3s *\nep  4 | lr 9.05e-04 | train loss 0.0976 acc  99.03% | val loss 0.0885 acc  99.25% |  10.2s *\nep  5 | lr 8.35e-04 | train loss 0.0759 acc  99.43% | val loss 0.0760 acc  99.25% |   9.1s *\nep  6 | lr 7.50e-04 | train loss 0.0642 acc  99.59% | val loss 0.0683 acc  99.25% |  12.1s *\nep  7 | lr 6.55e-04 | train loss 0.0544 acc  99.68% | val loss 0.0622 acc  99.25% |  10.3s *\nep  8 | lr 5.52e-04 | train loss 0.0504 acc  99.59% | val loss 0.0586 acc  99.25% |   9.3s *\nep  9 | lr 4.48e-04 | train loss 0.0463 acc  99.51% | val loss 0.0556 acc  99.62% |   9.9s *\nep 10 | lr 3.45e-04 | train loss 0.0426 acc  99.84% | val loss 0.0532 acc  99.62% |  10.4s *\nep 11 | lr 2.50e-04 | train loss 0.0400 acc  99.84% | val loss 0.0517 acc  99.62% |   9.9s *\nep 12 | lr 1.65e-04 | train loss 0.0371 acc  99.84% | val loss 0.0507 acc  99.62% |  17.6s *\nep 13 | lr 9.55e-05 | train loss 0.0384 acc  99.92% | val loss 0.0502 acc  99.62% |   8.9s *\nep 14 | lr 4.32e-05 | train loss 0.0367 acc  99.84% | val loss 0.0500 acc  99.62% |  10.3s *\nep 15 | lr 1.09e-05 | train loss 0.0381 acc  99.68% | val loss 0.0499 acc  99.62% |  10.5s *\n\nMelhor época: 15 (val loss 0.0499) | tempo de treino: 158.1s | VRAM pico no treino: 723 MB\nOK: backbone idêntico ao pré-treinado após o treino (pesos e running stats do BN).\n"
- },
- {
-  "cell": 27,
-  "first_line": "# fig: training_curves",
-  "output": "[figura]"
- },
- {
-  "cell": 30,
-  "first_line": "te = run_epoch(model, test_loader)",
-  "output": "Accuracy global (test): 99.25% | macro-F1: 0.9929 | test loss: 0.0628\n\n classe  n_test  accuracy (%)  precision  recall     f1\n   bike      54       98.1481     1.0000  0.9815 0.9907\n   cars      63      100.0000     0.9844  1.0000 0.9921\n   cats      30       96.6667     1.0000  0.9667 0.9831\n   dogs      31      100.0000     0.9688  1.0000 0.9841\nflowers      32      100.0000     1.0000  1.0000 1.0000\n horses      28      100.0000     1.0000  1.0000 1.0000\n  human      27      100.0000     1.0000  1.0000 1.0000\n\n              precision    recall  f1-score   support\n\n        bike     1.0000    0.9815    0.9907        54\n        cars     0.9844    1.0000    0.9921        63\n        cats     1.0000    0.9667    0.9831        30\n        dogs     0.9688    1.0000    0.9841        31\n     flowers     1.0000    1.0000    1.0000        32\n      horses     1.0000    1.0000    1.0000        28\n       human     1.0000    1.0000    1.0000        27\n\n    accuracy                         0.9925       265\n   macro avg     0.9933    0.9926    0.9929       265\nweighted avg     0.9926    0.9925    0.9924       265\n\n"
- },
- {
-  "cell": 31,
-  "first_line": "# fig: per_class_accuracy",
-  "output": "[figura]"
- },
- {
-  "cell": 32,
-  "first_line": "# fig: confusion_matrix",
-  "output": "[figura]\nConfusões mais frequentes (real -> predito): [('cats->dogs', 1), ('bike->cars', 1)]\n"
- },
- {
   "cell": 33,
+  "first_line": "history, best_val_loss, best_epoch, bad_epochs = [], float(\"inf\"), 0, 0",
+  "output": "ep  1 | lr 1.00e-03 | train loss 1.0579 acc  80.23% | val loss 0.4002 acc  98.11% |  11.9s *\nep  2 | lr 9.89e-04 | train loss 0.2592 acc  98.14% | val loss 0.1608 acc  99.25% |  10.0s *\nep  3 | lr 9.57e-04 | train loss 0.1332 acc  98.70% | val loss 0.1104 acc  99.25% |   8.0s *\nep  4 | lr 9.05e-04 | train loss 0.0976 acc  99.03% | val loss 0.0885 acc  99.25% |   9.8s *\nep  5 | lr 8.35e-04 | train loss 0.0759 acc  99.43% | val loss 0.0760 acc  99.25% |   9.0s *\nep  6 | lr 7.50e-04 | train loss 0.0642 acc  99.59% | val loss 0.0683 acc  99.25% |   9.1s *\nep  7 | lr 6.55e-04 | train loss 0.0544 acc  99.68% | val loss 0.0622 acc  99.25% |  10.1s *\nep  8 | lr 5.52e-04 | train loss 0.0504 acc  99.59% | val loss 0.0586 acc  99.25% |   8.6s *\nep  9 | lr 4.48e-04 | train loss 0.0463 acc  99.51% | val loss 0.0556 acc  99.62% |   9.2s *\nep 10 | lr 3.45e-04 | train loss 0.0426 acc  99.84% | val loss 0.0532 acc  99.62% |   9.9s *\nep 11 | lr 2.50e-04 | train loss 0.0400 acc  99.84% | val loss 0.0517 acc  99.62% |   8.1s *\nep 12 | lr 1.65e-04 | train loss 0.0371 acc  99.84% | val loss 0.0507 acc  99.62% |  10.1s *\nep 13 | lr 9.55e-05 | train loss 0.0384 acc  99.92% | val loss 0.0502 acc  99.62% |  10.1s *\nep 14 | lr 4.32e-05 | train loss 0.0367 acc  99.84% | val loss 0.0500 acc  99.62% |   8.4s *\nep 15 | lr 1.09e-05 | train loss 0.0381 acc  99.68% | val loss 0.0499 acc  99.62% |  10.3s *\n\nMelhor época: 15 (val loss 0.0499) | tempo de treino: 142.7s\nVRAM pico no treino: 723 MB alocados | 1264 MB reservados pelo cache do PyTorch\nRAM após o treino: {'ram_rss_mb': 1864, 'ram_maxrss_mb': 1901, 'ram_maxrss_children_mb': 1301}\nOK: backbone idêntico ao pré-treinado após o treino (pesos e running stats do BN).\n"
+ },
+ {
+  "cell": 34,
+  "first_line": "# fig: training_curves",
+  "output": "A3_training_curves.png: 111 KB (dpi 150)\n\n[figura]"
+ },
+ {
+  "cell": 37,
+  "first_line": "te = run_epoch(model, test_loader)",
+  "output": "Accuracy global (test): 99.25% | macro-F1: 0.9929 | test loss: 0.0628\n\n classe  n_test  accuracy (%)  precision  recall     f1\n   bike      54       98.1481     1.0000  0.9815 0.9907\n   cars      63      100.0000     0.9844  1.0000 0.9921\n   cats      30       96.6667     1.0000  0.9667 0.9831\n   dogs      31      100.0000     0.9688  1.0000 0.9841\nflowers      32      100.0000     1.0000  1.0000 1.0000\n horses      28      100.0000     1.0000  1.0000 1.0000\n  human      27      100.0000     1.0000  1.0000 1.0000\n\n              precision    recall  f1-score   support\n\n        bike     1.0000    0.9815    0.9907        54\n        cars     0.9844    1.0000    0.9921        63\n        cats     1.0000    0.9667    0.9831        30\n        dogs     0.9688    1.0000    0.9841        31\n     flowers     1.0000    1.0000    1.0000        32\n      horses     1.0000    1.0000    1.0000        28\n       human     1.0000    1.0000    1.0000        27\n\n    accuracy                         0.9925       265\n   macro avg     0.9933    0.9926    0.9929       265\nweighted avg     0.9926    0.9925    0.9924       265\n\n\nTeste limpo (sem as 3 imagens com quase-duplicata no treino): 262 imagens | accuracy 99.24% | macro-F1 0.9928\nAccuracy nas imagens de teste COM quase-duplicata no treino: 100.00%\n"
+ },
+ {
+  "cell": 38,
+  "first_line": "# fig: per_class_accuracy",
+  "output": "A3_per_class_accuracy.png: 58 KB (dpi 150)\n\n[figura]"
+ },
+ {
+  "cell": 39,
+  "first_line": "# fig: confusion_matrix",
+  "output": "A3_confusion_matrix.png: 90 KB (dpi 150)\n\n[figura]\nConfusões mais frequentes (real -> predito): [('cats->dogs', 1), ('bike->cars', 1)]\n"
+ },
+ {
+  "cell": 40,
   "first_line": "# fig: error_examples",
-  "output": "[figura]"
+  "output": "A3_error_examples.png: 757 KB (dpi 150)\n\n[figura]"
  },
  {
-  "cell": 36,
+  "cell": 43,
   "first_line": "# fig: augmentation_examples",
-  "output": "[figura]"
+  "output": "A3_augmentation_examples.png: 876 KB (dpi 80)\n\n[figura]"
  },
  {
-  "cell": 41,
+  "cell": 48,
   "first_line": "metrics = {",
-  "output": "{\n  \"activity\": \"A3\",\n  \"dataset\": \"pavansanagapati/images-dataset\",\n  \"model\": \"efficientnet_b0 IMAGENET1K_V1, backbone congelado, head Linear(1280, 7)\",\n  \"n_images_clean\": 1764,\n  \"n_corrupted\": 0,\n  \"n_duplicates_removed\": 39,\n  \"split\": {\n    \"train\": 1234,\n    \"val\": 265,\n    \"test\": 265\n  },\n  \"imbalance_ratio\": 2.295,\n  \"total_params\": 4016515,\n  \"trainable_params\": 8967,\n  \"test_accuracy\": 99.25,\n  \"test_macro_f1\": 0.9929,\n  \"test_per_class_accuracy\": {\n    \"bike\": 98.15,\n    \"cars\": 100.0,\n    \"cats\": 96.67,\n    \"dogs\": 100.0,\n    \"flowers\": 100.0,\n    \"horses\": 100.0,\n    \"human\": 100.0\n  },\n  \"best_epoch\": 15,\n  \"epochs_run\": 15,\n  \"best_val_loss\": 0.0499,\n  \"best_val_acc\": 99.62,\n  \"train_time_s\": 158.1,\n  \"peak_vram_train_mb\": 723,\n  \"benchmark_vram\": [\n    {\n      \"modelo\": \"efficientnet_b0\",\n      \"modo\": \"feature extraction\",\n      \"params treináveis\": 8967,\n      \"ms/passo (batch 64)\": 68.5,\n      \"VRAM pico (MB)\": 707\n    },\n    {\n      \"modelo\": \"efficientnet_b0\",\n      \"modo\": \"fine-tuning completo\",\n      \"params treináveis\": 4016515,\n      \"ms/passo (batch 64)\": 280.4,\n      \"VRAM pico (MB)\": 5550\n    },\n    {\n      \"modelo\": \"resnet50\",\n      \"modo\": \"feature extraction\",\n      \"params treináveis\": 14343,\n      \"ms/passo (batch 64)\": 166.5,\n      \"VRAM pico (MB)\": 783\n    },\n    {\n      \"modelo\": \"resnet50\",\n      \"modo\": \"fine-tuning completo\",\n      \"params treináveis\": 23522375,\n      \"ms/passo (batch 64)\": 596.0,\n      \"VRAM pico (MB)\": 5611\n    }\n  ],\n  \"notebook_time_s\": 219.0,\n  \"gpu\": \"Tesla T4\"\n}\n"
+  "output": "{\n  \"activity\": \"A3\",\n  \"dataset\": \"pavansanagapati/images-dataset\",\n  \"model\": \"efficientnet_b0 IMAGENET1K_V1, backbone congelado, head Linear(1280, 7)\",\n  \"n_images_clean\": 1764,\n  \"n_corrupted\": 0,\n  \"n_duplicates_removed\": 39,\n  \"split\": {\n    \"train\": 1234,\n    \"val\": 265,\n    \"test\": 265\n  },\n  \"imbalance_ratio\": 2.295,\n  \"total_params\": 4016515,\n  \"trainable_params\": 8967,\n  \"test_accuracy\": 99.25,\n  \"test_macro_f1\": 0.9929,\n  \"test_per_class_accuracy\": {\n    \"bike\": 98.15,\n    \"cars\": 100.0,\n    \"cats\": 96.67,\n    \"dogs\": 100.0,\n    \"flowers\": 100.0,\n    \"horses\": 100.0,\n    \"human\": 100.0\n  },\n  \"best_epoch\": 15,\n  \"epochs_run\": 15,\n  \"best_val_loss\": 0.0499,\n  \"best_val_acc\": 99.62,\n  \"near_duplicates\": {\n    \"method\": \"imagehash.phash 64 bits\",\n    \"hamming_threshold\": 4,\n    \"n_pairs\": 22,\n    \"n_pairs_diff_class\": 0,\n    \"pairs_by_partition\": {\n      \"train×train\": 12,\n      \"val×val\": 0,\n      \"test×test\": 1,\n      \"train×val\": 6,\n      \"train×test\": 3,\n      \"val×test\": 0\n    },\n    \"n_test_with_train_near_dup\": 3\n  },\n  \"test_clean\": {\n    \"n\": 262,\n    \"accuracy\": 99.24,\n    \"macro_f1\": 0.9928\n  },\n  \"alpha\": {\n    \"flowers\": {\n      \"n_images_with_alpha\": 210,\n      \"mean_frac_alpha_lt_255\": 0.0,\n      \"max_frac_alpha_lt_255\": 0.0,\n      \"n_images_any_transparent\": 0\n    }\n  },\n  \"eda\": {\n    \"formats\": {\n      \"BMP\": 784,\n      \"JPEG\": 770,\n      \"PNG\": 210\n    },\n    \"modes\": {\n      \"RGB\": 1554,\n      \"RGBA\": 210\n    },\n    \"per_class\": {\n      \"bike\": {\n        \"n\": 364,\n        \"formats\": {\n          \"BMP\": 364\n        },\n        \"modes\": {\n          \"RGB\": 364\n        },\n        \"median_width\": 640.0,\n        \"median_height\": 480.0\n      },\n      \"cars\": {\n        \"n\": 420,\n        \"formats\": {\n          \"BMP\": 420\n        },\n        \"modes\": {\n          \"RGB\": 420\n        },\n        \"median_width\": 640.0,\n        \"median_height\": 480.0\n      },\n      \"cats\": {\n        \"n\": 202,\n        \"formats\": {\n          \"JPEG\": 202\n        },\n        \"modes\": {\n          \"RGB\": 202\n        },\n        \"median_width\": 460.0,\n        \"median_height\": 374.0\n      },\n      \"dogs\": {\n        \"n\": 202,\n        \"formats\": {\n          \"JPEG\": 202\n        },\n        \"modes\": {\n          \"RGB\": 202\n        },\n        \"median_width\": 439.5,\n        \"median_height\": 374.0\n      },\n      \"flowers\": {\n        \"n\": 210,\n        \"formats\": {\n          \"PNG\": 210\n        },\n        \"modes\": {\n          \"RGBA\": 210\n        },\n        \"median_width\": 128.0,\n        \"median_height\": 128.0\n      },\n      \"horses\": {\n        \"n\": 183,\n        \"formats\": {\n          \"JPEG\": 183\n        },\n        \"modes\": {\n          \"RGB\": 183\n        },\n        \"median_width\": 259.0,\n        \"median_height\": 194.0\n      },\n      \"human\": {\n        \"n\": 183,\n        \"formats\": {\n          \"JPEG\": 183\n        },\n        \"modes\": {\n          \"RGB\": 183\n        },\n        \"median_width\": 188.0,\n        \"median_height\": 256.0\n      }\n    }\n  },\n  \"train_time_s\": 142.7,\n  \"peak_vram_train_mb\": 723,\n  \"peak_vram_train_reserved_mb\": 1264,\n  \"benchmark_vram\": [\n    {\n      \"modelo\": \"efficientnet_b0\",\n      \"modo\": \"feature extraction\",\n      \"params treináveis\": 8967,\n      \"ms/passo (batch 64)\": 67.6,\n      \"VRAM pico (MB)\": 707,\n      \"VRAM reservada pico (MB)\": 956\n    },\n    {\n      \"modelo\": \"efficientnet_b0\",\n      \"modo\": \"fine-tuning completo\",\n      \"params treináveis\": 4016515,\n      \"ms/passo (batch 64)\": 276.7,\n      \"VRAM pico (MB)\": 5550,\n      \"VRAM reservada pico (MB)\": 6118\n    },\n    {\n      \"modelo\": \"resnet50\",\n      \"modo\": \"feature extraction\",\n      \"params treináveis\": 14343,\n      \"ms/passo (batch 64)\": 162.7,\n      \"VRAM pico (MB)\": 783,\n      \"VRAM reservada pico (MB)\": 1190\n    },\n    {\n      \"modelo\": \"resnet50\",\n      \"modo\": \"fine-tuning completo\",\n      \"params treináveis\": 23522375,\n      \"ms/passo (batch 64)\": 585.0,\n      \"VRAM pico (MB)\": 5611,\n      \"VRAM reservada pico (MB)\": 6104\n    }\n  ],\n  \"ram_after_train\": {\n    \"ram_rss_mb\": 1864,\n    \"ram_maxrss_mb\": 1901,\n    \"ram_maxrss_children_mb\": 1301\n  },\n  \"ram_rss_mb\": 1938,\n  \"ram_maxrss_mb\": 1947,\n  \"ram_maxrss_children_mb\": 1326,\n  \"pip_time_s\": 7.1,\n  \"download_time_s\": 75.5,\n  \"notebook_time_s\": 341.1,\n  \"notebook_time_scope\": \"da 1a célula de código (pip) até esta célula; inclui pip, montagem do Drive e download\",\n  \"gpu\": \"Tesla T4\"\n}\n"
  }
 ]

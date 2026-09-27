@@ -5,26 +5,195 @@
   "n_images_clean": 1764,
   "n_corrupted": 0,
   "n_duplicates_removed": 39,
-  "split": {"train": 1234, "val": 265, "test": 265},
+  "split": {
+    "train": 1234,
+    "val": 265,
+    "test": 265
+  },
   "imbalance_ratio": 2.295,
   "total_params": 4016515,
   "trainable_params": 8967,
   "test_accuracy": 99.25,
   "test_macro_f1": 0.9929,
-  "test_per_class_accuracy": {"bike": 98.15, "cars": 100.0, "cats": 96.67, "dogs": 100.0, "flowers": 100.0, "horses": 100.0, "human": 100.0},
+  "test_per_class_accuracy": {
+    "bike": 98.15,
+    "cars": 100.0,
+    "cats": 96.67,
+    "dogs": 100.0,
+    "flowers": 100.0,
+    "horses": 100.0,
+    "human": 100.0
+  },
   "best_epoch": 15,
   "epochs_run": 15,
   "best_val_loss": 0.0499,
   "best_val_acc": 99.62,
-  "train_time_s": 158.1,
+  "near_duplicates": {
+    "method": "imagehash.phash 64 bits",
+    "hamming_threshold": 4,
+    "n_pairs": 22,
+    "n_pairs_diff_class": 0,
+    "pairs_by_partition": {
+      "train×train": 12,
+      "val×val": 0,
+      "test×test": 1,
+      "train×val": 6,
+      "train×test": 3,
+      "val×test": 0
+    },
+    "n_test_with_train_near_dup": 3
+  },
+  "test_clean": {
+    "n": 262,
+    "accuracy": 99.24,
+    "macro_f1": 0.9928
+  },
+  "alpha": {
+    "flowers": {
+      "n_images_with_alpha": 210,
+      "mean_frac_alpha_lt_255": 0.0,
+      "max_frac_alpha_lt_255": 0.0,
+      "n_images_any_transparent": 0
+    }
+  },
+  "eda": {
+    "formats": {
+      "BMP": 784,
+      "JPEG": 770,
+      "PNG": 210
+    },
+    "modes": {
+      "RGB": 1554,
+      "RGBA": 210
+    },
+    "per_class": {
+      "bike": {
+        "n": 364,
+        "formats": {
+          "BMP": 364
+        },
+        "modes": {
+          "RGB": 364
+        },
+        "median_width": 640.0,
+        "median_height": 480.0
+      },
+      "cars": {
+        "n": 420,
+        "formats": {
+          "BMP": 420
+        },
+        "modes": {
+          "RGB": 420
+        },
+        "median_width": 640.0,
+        "median_height": 480.0
+      },
+      "cats": {
+        "n": 202,
+        "formats": {
+          "JPEG": 202
+        },
+        "modes": {
+          "RGB": 202
+        },
+        "median_width": 460.0,
+        "median_height": 374.0
+      },
+      "dogs": {
+        "n": 202,
+        "formats": {
+          "JPEG": 202
+        },
+        "modes": {
+          "RGB": 202
+        },
+        "median_width": 439.5,
+        "median_height": 374.0
+      },
+      "flowers": {
+        "n": 210,
+        "formats": {
+          "PNG": 210
+        },
+        "modes": {
+          "RGBA": 210
+        },
+        "median_width": 128.0,
+        "median_height": 128.0
+      },
+      "horses": {
+        "n": 183,
+        "formats": {
+          "JPEG": 183
+        },
+        "modes": {
+          "RGB": 183
+        },
+        "median_width": 259.0,
+        "median_height": 194.0
+      },
+      "human": {
+        "n": 183,
+        "formats": {
+          "JPEG": 183
+        },
+        "modes": {
+          "RGB": 183
+        },
+        "median_width": 188.0,
+        "median_height": 256.0
+      }
+    }
+  },
+  "train_time_s": 142.7,
   "peak_vram_train_mb": 723,
+  "peak_vram_train_reserved_mb": 1264,
   "benchmark_vram": [
-    {"modelo": "efficientnet_b0", "modo": "feature extraction", "params treináveis": 8967, "ms/passo (batch 64)": 68.5, "VRAM pico (MB)": 707},
-    {"modelo": "efficientnet_b0", "modo": "fine-tuning completo", "params treináveis": 4016515, "ms/passo (batch 64)": 280.4, "VRAM pico (MB)": 5550},
-    {"modelo": "resnet50", "modo": "feature extraction", "params treináveis": 14343, "ms/passo (batch 64)": 166.5, "VRAM pico (MB)": 783},
-    {"modelo": "resnet50", "modo": "fine-tuning completo", "params treináveis": 23522375, "ms/passo (batch 64)": 596.0, "VRAM pico (MB)": 5611}
+    {
+      "modelo": "efficientnet_b0",
+      "modo": "feature extraction",
+      "params treináveis": 8967,
+      "ms/passo (batch 64)": 67.6,
+      "VRAM pico (MB)": 707,
+      "VRAM reservada pico (MB)": 956
+    },
+    {
+      "modelo": "efficientnet_b0",
+      "modo": "fine-tuning completo",
+      "params treináveis": 4016515,
+      "ms/passo (batch 64)": 276.7,
+      "VRAM pico (MB)": 5550,
+      "VRAM reservada pico (MB)": 6118
+    },
+    {
+      "modelo": "resnet50",
+      "modo": "feature extraction",
+      "params treináveis": 14343,
+      "ms/passo (batch 64)": 162.7,
+      "VRAM pico (MB)": 783,
+      "VRAM reservada pico (MB)": 1190
+    },
+    {
+      "modelo": "resnet50",
+      "modo": "fine-tuning completo",
+      "params treináveis": 23522375,
+      "ms/passo (batch 64)": 585.0,
+      "VRAM pico (MB)": 5611,
+      "VRAM reservada pico (MB)": 6104
+    }
   ],
-  "notebook_time_s": 219.0,
-  "gpu": "Tesla T4",
-  "eda_extra": {"formatos": {"JPEG": 808, "BMP": 785, "PNG": 210}, "modos": {"RGB": 1593, "RGBA": 210}, "obs": "todas as 210 flowers são PNG RGBA; nenhuma outra classe tem alpha (possível atalho)"}
+  "ram_after_train": {
+    "ram_rss_mb": 1864,
+    "ram_maxrss_mb": 1901,
+    "ram_maxrss_children_mb": 1301
+  },
+  "ram_rss_mb": 1938,
+  "ram_maxrss_mb": 1947,
+  "ram_maxrss_children_mb": 1326,
+  "pip_time_s": 7.1,
+  "download_time_s": 75.5,
+  "notebook_time_s": 341.1,
+  "notebook_time_scope": "da 1a célula de código (pip) até esta célula; inclui pip, montagem do Drive e download",
+  "gpu": "Tesla T4"
 }
