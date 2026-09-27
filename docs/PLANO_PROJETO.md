@@ -317,7 +317,7 @@ Pelo menos 4 problemas, cada um com **impacto operacional** e **como abordaria**
 |---|---|---|---|---|
 | Plano | 27/09/2026 | ✅ criado | — | Decisões da seção 0.1 |
 | Time de agentes | 27/09/2026 | ✅ definido | `py2ipynb --selftest` OK | Supervisor, 5 agentes custom, base de conhecimento, Opus/Sonnet, paralelismo sem GPU, Plus com T4, `gilmar_medeiros`, sem metas de data |
-| 0 Setup | | ☐ | | |
+| 0 Setup | 27/09/2026 | ✅ Gate 0 aprovado | 4 datasets OK (ver decisoes.md); base de conhecimento 657 linhas | D8–D10: 20 recomendações aceitas; corpus A2 = 300 ads + corpus usuários; ADS-16 no PDF com citação |
 | 1 A3 | | ☐ | | |
 | 2 A1 | | ☐ | | |
 | 3 A4.1 | | ☐ | | |

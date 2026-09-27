@@ -10,6 +10,9 @@
 | D5 | 27/09/2026 | Fonte local (percent .py) → GitHub público → Colab via colab-mcp | Versionamento + execução na T4 |
 | D6 | 27/09/2026 | Relatório em Markdown + pandoc | Edição por seção pelos agentes |
 | D7 | 27/09/2026 | Time de agentes custom, padrão Supervisor | Conexão única do colab-mcp; consistência de convenções |
+| D8 | 27/09/2026 | Gate 0: **aceitas as 20 recomendações** de `docs/base_conhecimento/README.md` (seção "Dúvidas consolidadas") | Aprovado por Gilmar; revisões pontuais nos gates |
+| D9 | 27/09/2026 | A2: corpus = 300 anúncios (20 categorias) + ~300–400 imagens originais dos usuários (sem `*_th_*`), estratificadas por usuário e POS/NEG → ~600–700 imgs | ADS-16 só tem 300 anúncios; enunciado exige ≥500 |
+| D10 | 27/09/2026 | A2: exemplos do ADS-16 aparecem no notebook e no PDF (uso acadêmico, entregue só no Moodle), com a citação exigida pela licença; notebooks executados fora do repo público | Enunciado exige visualização; licença proíbe redistribuição |
 
 ## Datasets (slugs Kaggle)
 | Atividade | Slug | Status |
@@ -27,7 +30,7 @@
 - ⚠ **Licença**: proíbe redistribuir as imagens e exige citar Roffo & Vinciarelli (EMPIRE 2016) com a frase "The research in this paper use the ADS-16 database". Notebooks executados com imagens do ADS-16 **não vão para o repo público**.
 
 ## Pendências
-- Composição do corpus da A2 (Gate 0).
+- (nenhuma)
 
 ## Uso de IA
 Ferramenta: Claude Code (Anthropic, modelos Claude Opus/Sonnet), com agentes custom definidos em `agents/`.
