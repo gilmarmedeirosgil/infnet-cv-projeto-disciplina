@@ -270,11 +270,11 @@ Pelo menos 4 problemas, cada um com **impacto operacional** e **como abordaria**
 
 | # | Competência | Item da rubrica (resumo) | Onde | Status |
 |---|---|---|---|---|
-| 1.1 | CNN transfer learning | CNN pré-treinada, head trocado para n classes, backbone congelado (feature extraction) | A3 | ☐ |
-| 1.2 | CNN transfer learning | Curvas de treino + accuracy por classe e global | A3 | ☐ |
-| 1.3 | CNN transfer learning | ≥3 estratégias de augmentation com justificativa para o domínio | A3 §3.2 | ☐ |
-| 1.4 | CNN transfer learning | Quando usar feature extraction vs. fine-tuning (tamanho e domínio) | A3 + relatório | ☐ |
-| 1.5 | CNN transfer learning | Escolha do modelo justificada (T4, nº de classes) | A3 | ☐ |
+| 1.1 | CNN transfer learning | CNN pré-treinada, head trocado para n classes, backbone congelado (feature extraction) | A3 | ✅ |
+| 1.2 | CNN transfer learning | Curvas de treino + accuracy por classe e global | A3 | ✅ |
+| 1.3 | CNN transfer learning | ≥3 estratégias de augmentation com justificativa para o domínio | A3 §3.2 | ✅ |
+| 1.4 | CNN transfer learning | Quando usar feature extraction vs. fine-tuning (tamanho e domínio) | A3 + relatório | ✅ |
+| 1.5 | CNN transfer learning | Escolha do modelo justificada (T4, nº de classes) | A3 | ✅ |
 | 2.1 | Transformer | SDPA e MHA do zero, testáveis, com projeções por head e concatenação | A1 2b | ☐ |
 | 2.2 | Transformer | Heatmap de atenção de ≥1 exemplo do domínio + interpretação escrita | A1 2c/2e | ☐ |
 | 2.3 | Transformer | TransformerEncoderBlock completo (MLP 2 camadas, LayerNorm, residual) como base do ViT | A1 2b | ☐ |
@@ -318,7 +318,7 @@ Pelo menos 4 problemas, cada um com **impacto operacional** e **como abordaria**
 | Plano | 27/09/2026 | ✅ criado | — | Decisões da seção 0.1 |
 | Time de agentes | 27/09/2026 | ✅ definido | `py2ipynb --selftest` OK | Supervisor, 5 agentes custom, base de conhecimento, Opus/Sonnet, paralelismo sem GPU, Plus com T4, `gilmar_medeiros`, sem metas de data |
 | 0 Setup | 27/09/2026 | ✅ Gate 0 aprovado | 4 datasets OK (ver decisoes.md); base de conhecimento 657 linhas | D8–D10: 20 recomendações aceitas; corpus A2 = 300 ads + corpus usuários; ADS-16 no PDF com citação |
-| 1 A3 | | ☐ | | |
+| 1 A3 | 27/09/2026 | ✅ Gate 1 | test 99,25% (IC Wilson 97,3–99,8), macro-F1 0,993; teste limpo (pHash) 99,24%; 5,7 min na T4 | Rubrica 1.1–1.5 PASSA (revisor); v2 com pHash, alfa medido, RAM/VRAM medidas |
 | 2 A1 | | ☐ | | |
 | 3 A4.1 | | ☐ | | |
 | 4 A2 | | ☐ | | |
