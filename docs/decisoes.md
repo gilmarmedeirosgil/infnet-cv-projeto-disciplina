@@ -14,13 +14,20 @@
 ## Datasets (slugs Kaggle)
 | Atividade | Slug | Status |
 |---|---|---|
-| A1 | `kaustubhdikshit/neu-surface-defect-database` | a validar no smoke test |
-| A2 | `groffo/ads16-dataset` | a validar no smoke test (estrutura e nº de imagens) |
-| A3 | `pavansanagapati/images-dataset` | a validar no smoke test |
-| A4.1 | `tawsifurrahman/covid19-radiography-database` | a validar no smoke test |
+| A1 | `kaustubhdikshit/neu-surface-defect-database` | ✔ 27/09 — 1.800 imgs, 6 classes × 300; já dividido em `NEU-DET/train/images/<classe>` (240/classe) e `NEU-DET/validation/images/<classe>` (60/classe); 28 MB |
+| A2 | `groffo/ads16-dataset` | ✔ 27/09 — 1,5 GB; ver estrutura abaixo |
+| A3 | `pavansanagapati/images-dataset` | ✔ 27/09 — 7 classes em `data/<classe>`: bike 365, cars 420, cats 202, dogs 202, flowers 210, horses 202, human 202 (1.803). **Cópia duplicada em `data/data/`**, que deve ser ignorada |
+| A4.1 | `tawsifurrahman/covid19-radiography-database` | ✔ 27/09 — `COVID-19_Radiography_Dataset/<classe>/images`: COVID 3.616, Normal 10.192, Viral Pneumonia 1.345, Lung_Opacity 6.012 (+ máscaras pulmonares). "Pneumonia" do cenário = **Viral Pneumonia** |
+
+### Estrutura do ADS-16 (smoke test)
+- `ADS16_Benchmark_part{1,2}/.../Ads/Ads/<1..20>/<n>.png`: **300 anúncios em 20 categorias × 15**. Os nomes estão em `U*-RT.csv` (Cat0–Cat19: Clothing & Shoes, Automotive, Baby Products, Health & Beauty, Media (BMVD), Consumer Electronics, Console & Video Games, DIY & Tools, Garden & Outdoor living, Grocery, Kitchen & Home, Betting, Jewellery & Watches, Musical Instruments, Office Products, Pet Supplies, Computer Software, Sports & Outdoors, Toys & Games, Dating Sites).
+- `.../Corpus/Corpus/U<id>/U<id>-IM-{POS,NEG}/`: imagens favoritas/não favoritas de 120 usuários (~5+5 cada, ~1.200 originais), mais **1.173 miniaturas `*_th_*`** duplicadas. CSVs `IM-POS/NEG` trazem uma descrição textual de cada imagem (útil para validar o CLIP).
+- CSVs `INF` têm dados pessoais (parcialmente ocultos): **não usar**.
+- ⚠ O enunciado fala em "16 categorias"; o dataset tem **20** categorias de anúncios. O nome ADS-16 vem do ano (EMPIRE 2016).
+- ⚠ **Licença**: proíbe redistribuir as imagens e exige citar Roffo & Vinciarelli (EMPIRE 2016) com a frase "The research in this paper use the ADS-16 database". Notebooks executados com imagens do ADS-16 **não vão para o repo público**.
 
 ## Pendências
-- Confirmar estrutura do ADS-16 (o enunciado pede ≥500 imagens em 16 categorias).
+- Composição do corpus da A2 (Gate 0).
 
 ## Uso de IA
 Ferramenta: Claude Code (Anthropic, modelos Claude Opus/Sonnet), com agentes custom definidos em `agents/`.

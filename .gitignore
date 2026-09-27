@@ -16,3 +16,6 @@ checkpoints/
 # credenciais
 kaggle.json
 .env
+
+# notebooks executados (contêm imagens com licença restrita, ex. ADS-16)
+entregas/
