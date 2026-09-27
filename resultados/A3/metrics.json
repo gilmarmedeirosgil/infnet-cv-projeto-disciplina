@@ -1,0 +1,30 @@
+{
+  "activity": "A3",
+  "dataset": "pavansanagapati/images-dataset",
+  "model": "efficientnet_b0 IMAGENET1K_V1, backbone congelado, head Linear(1280, 7)",
+  "n_images_clean": 1764,
+  "n_corrupted": 0,
+  "n_duplicates_removed": 39,
+  "split": {"train": 1234, "val": 265, "test": 265},
+  "imbalance_ratio": 2.295,
+  "total_params": 4016515,
+  "trainable_params": 8967,
+  "test_accuracy": 99.25,
+  "test_macro_f1": 0.9929,
+  "test_per_class_accuracy": {"bike": 98.15, "cars": 100.0, "cats": 96.67, "dogs": 100.0, "flowers": 100.0, "horses": 100.0, "human": 100.0},
+  "best_epoch": 15,
+  "epochs_run": 15,
+  "best_val_loss": 0.0499,
+  "best_val_acc": 99.62,
+  "train_time_s": 158.1,
+  "peak_vram_train_mb": 723,
+  "benchmark_vram": [
+    {"modelo": "efficientnet_b0", "modo": "feature extraction", "params treináveis": 8967, "ms/passo (batch 64)": 68.5, "VRAM pico (MB)": 707},
+    {"modelo": "efficientnet_b0", "modo": "fine-tuning completo", "params treináveis": 4016515, "ms/passo (batch 64)": 280.4, "VRAM pico (MB)": 5550},
+    {"modelo": "resnet50", "modo": "feature extraction", "params treináveis": 14343, "ms/passo (batch 64)": 166.5, "VRAM pico (MB)": 783},
+    {"modelo": "resnet50", "modo": "fine-tuning completo", "params treináveis": 23522375, "ms/passo (batch 64)": 596.0, "VRAM pico (MB)": 5611}
+  ],
+  "notebook_time_s": 219.0,
+  "gpu": "Tesla T4",
+  "eda_extra": {"formatos": {"JPEG": 808, "BMP": 785, "PNG": 210}, "modos": {"RGB": 1593, "RGBA": 210}, "obs": "todas as 210 flowers são PNG RGBA; nenhuma outra classe tem alpha (possível atalho)"}
+}

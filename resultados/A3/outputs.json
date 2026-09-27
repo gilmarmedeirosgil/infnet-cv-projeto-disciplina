@@ -1,0 +1,127 @@
+[
+ {
+  "cell": 2,
+  "first_line": "!pip install -q kagglehub",
+  "output": ""
+ },
+ {
+  "cell": 3,
+  "first_line": "import os, gc, copy, json, time, random, hashlib",
+  "output": "PyTorch 2.11.0+cu128 | torchvision 0.26.0+cu128 | device: cuda\nGPU: Tesla T4 | VRAM total: 14.56 GB\n"
+ },
+ {
+  "cell": 4,
+  "first_line": "try:",
+  "output": "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\nArtefatos em: /content/drive/MyDrive/infnet_cv_projeto/outputs/A3\n"
+ },
+ {
+  "cell": 5,
+  "first_line": "def load_kaggle_credentials():",
+  "output": "Secrets do Kaggle carregados: ['KAGGLE_USERNAME', 'KAGGLE_KEY', 'KAGGLE_API_TOKEN']\nUsing Colab cache for faster access to the 'images-dataset' dataset.\nDataset em: /kaggle/input/images-dataset\n"
+ },
+ {
+  "cell": 7,
+  "first_line": "IMG_EXT = {\".jpg\", \".jpeg\", \".png\", \".bmp\", \".gif\", \".webp\", \".tif\", \".tiff\", \".jfif\"}",
+  "output": "Raiz: /kaggle/input/images-dataset/data | classes: ['bike', 'cars', 'cats', 'dogs', 'flowers', 'horses', 'human']\n"
+ },
+ {
+  "cell": 8,
+  "first_line": "records, non_images = [], []",
+  "output": "Arquivos de imagem: 1803 | corrompidos: 0 | não-imagem ignorados: 0\n\nFormato: {'JPEG': 808, 'BMP': 785, 'PNG': 210}\nModo de cor: {'RGB': 1593, 'RGBA': 210}\nExtensão: {'.jpg': 808, '.bmp': 785, '.png': 210}\n\nModo de cor por classe:\n mode     RGB  RGBA\ncls               \nbike     365     0\ncars     420     0\ncats     202     0\ndogs     202     0\nflowers    0   210\nhorses   202     0\nhuman    202     0\n"
+ },
+ {
+  "cell": 9,
+  "first_line": "md5_classes = df_ok.groupby(\"md5\").cls.nunique()",
+  "output": "Duplicatas exatas removidas: 39 (hashes em mais de uma classe, removidos por completo: 0)\nImagens válidas e únicas: 1764\n           n     %\ncls               \nbike     364  20.6\ncars     420  23.8\ncats     202  11.5\ndogs     202  11.5\nflowers  210  11.9\nhorses   183  10.4\nhuman    183  10.4\nRazão de desbalanceamento (maior/menor): 2.30\n"
+ },
+ {
+  "cell": 10,
+  "first_line": "# fig: class_counts",
+  "output": "[figura]"
+ },
+ {
+  "cell": 11,
+  "first_line": "# fig: samples_grid",
+  "output": "[figura]"
+ },
+ {
+  "cell": 12,
+  "first_line": "# fig: image_sizes",
+  "output": "         width  height  aspect\ncls                           \nbike     640.0   480.0    1.33\ncars     640.0   480.0    1.33\ncats     460.0   374.0    1.33\ndogs     439.5   374.0    1.25\nflowers  128.0   128.0    1.00\nhorses   259.0   194.0    1.34\nhuman    188.0   256.0    0.73\n\n[figura]"
+ },
+ {
+  "cell": 15,
+  "first_line": "train_df, temp_df = train_test_split(df, test_size=0.30, stratify=df.label, random_state=SEED)",
+  "output": "         train  val  test\ncls                      \nbike       255   55    54\ncars       294   63    63\ncats       141   31    30\ndogs       141   30    31\nflowers    147   31    32\nhorses     128   27    28\nhuman      128   28    27\nTOTAL     1234  265   265\n"
+ },
+ {
+  "cell": 17,
+  "first_line": "def meta_row(name, weights):",
+  "output": "         modelo         pesos  params (M)  GFLOPs  ImageNet top-1 (%)  tamanho arquivo (MB)\nEfficientNet-B0 IMAGENET1K_V1        5.29   0.386              77.692                20.451\n      ResNet-50 IMAGENET1K_V1       25.56   4.089              76.130                97.781\n      ResNet-50 IMAGENET1K_V2       25.56   4.089              80.858                97.790\n"
+ },
+ {
+  "cell": 18,
+  "first_line": "ARCHS = {\"efficientnet_b0\": efficientnet_b0, \"resnet50\": resnet50}",
+  "output": "         modelo                 modo  params treináveis  ms/passo (batch 64)  VRAM pico (MB)\nefficientnet_b0   feature extraction               8967                 68.5             707\nefficientnet_b0 fine-tuning completo            4016515                280.4            5550\n       resnet50   feature extraction              14343                166.5             783\n       resnet50 fine-tuning completo           23522375                596.0            5611\n"
+ },
+ {
+  "cell": 21,
+  "first_line": "WEIGHTS = EfficientNet_B0_Weights.IMAGENET1K_V1",
+  "output": "ImageClassification(\n    crop_size=[224]\n    resize_size=[256]\n    mean=[0.485, 0.456, 0.406]\n    std=[0.229, 0.224, 0.225]\n    interpolation=InterpolationMode.BICUBIC\n)\nbatch: (64, 3, 224, 224) torch.float32 | média 0.010 desvio 1.061 (normalizado)\n"
+ },
+ {
+  "cell": 22,
+  "first_line": "model = efficientnet_b0(weights=WEIGHTS)",
+  "output": "Downloading: \"https://download.pytorch.org/models/efficientnet_b0_rwightman-7f5810bc.pth\" to /root/.cache/torch/hub/checkpoints/efficientnet_b0_rwightman-7f5810bc.pth\n\n100%|██████████| 20.5M/20.5M [00:00<00:00, 62.1MB/s]\n\nSequential(\n  (0): Dropout(p=0.2, inplace=True)\n  (1): Linear(in_features=1280, out_features=7, bias=True)\n)\nParâmetros totais: 4,016,515 | treináveis: 8,967 (0.22%)\nParâmetros treináveis: ['classifier.1.weight', 'classifier.1.bias']\n"
+ },
+ {
+  "cell": 23,
+  "first_line": "set_head_train_mode(model)",
+  "output": "Parâmetros que receberam gradiente: ['classifier.1.weight', 'classifier.1.bias']\nOK: só o head tem gradiente; snapshot do backbone (pesos + estatísticas do BN) guardado.\n"
+ },
+ {
+  "cell": 25,
+  "first_line": "EPOCHS, LR, WD, PATIENCE = 15, 1e-3, 1e-4, 4",
+  "output": ""
+ },
+ {
+  "cell": 26,
+  "first_line": "history, best_val_loss, best_epoch, bad_epochs = [], float(\"inf\"), 0, 0",
+  "output": "ep  1 | lr 1.00e-03 | train loss 1.0579 acc  80.23% | val loss 0.4002 acc  98.11% |   9.4s *\nep  2 | lr 9.89e-04 | train loss 0.2592 acc  98.14% | val loss 0.1608 acc  99.25% |   9.8s *\nep  3 | lr 9.57e-04 | train loss 0.1332 acc  98.70% | val loss 0.1104 acc  99.25% |  10.3s *\nep  4 | lr 9.05e-04 | train loss 0.0976 acc  99.03% | val loss 0.0885 acc  99.25% |  10.2s *\nep  5 | lr 8.35e-04 | train loss 0.0759 acc  99.43% | val loss 0.0760 acc  99.25% |   9.1s *\nep  6 | lr 7.50e-04 | train loss 0.0642 acc  99.59% | val loss 0.0683 acc  99.25% |  12.1s *\nep  7 | lr 6.55e-04 | train loss 0.0544 acc  99.68% | val loss 0.0622 acc  99.25% |  10.3s *\nep  8 | lr 5.52e-04 | train loss 0.0504 acc  99.59% | val loss 0.0586 acc  99.25% |   9.3s *\nep  9 | lr 4.48e-04 | train loss 0.0463 acc  99.51% | val loss 0.0556 acc  99.62% |   9.9s *\nep 10 | lr 3.45e-04 | train loss 0.0426 acc  99.84% | val loss 0.0532 acc  99.62% |  10.4s *\nep 11 | lr 2.50e-04 | train loss 0.0400 acc  99.84% | val loss 0.0517 acc  99.62% |   9.9s *\nep 12 | lr 1.65e-04 | train loss 0.0371 acc  99.84% | val loss 0.0507 acc  99.62% |  17.6s *\nep 13 | lr 9.55e-05 | train loss 0.0384 acc  99.92% | val loss 0.0502 acc  99.62% |   8.9s *\nep 14 | lr 4.32e-05 | train loss 0.0367 acc  99.84% | val loss 0.0500 acc  99.62% |  10.3s *\nep 15 | lr 1.09e-05 | train loss 0.0381 acc  99.68% | val loss 0.0499 acc  99.62% |  10.5s *\n\nMelhor época: 15 (val loss 0.0499) | tempo de treino: 158.1s | VRAM pico no treino: 723 MB\nOK: backbone idêntico ao pré-treinado após o treino (pesos e running stats do BN).\n"
+ },
+ {
+  "cell": 27,
+  "first_line": "# fig: training_curves",
+  "output": "[figura]"
+ },
+ {
+  "cell": 30,
+  "first_line": "te = run_epoch(model, test_loader)",
+  "output": "Accuracy global (test): 99.25% | macro-F1: 0.9929 | test loss: 0.0628\n\n classe  n_test  accuracy (%)  precision  recall     f1\n   bike      54       98.1481     1.0000  0.9815 0.9907\n   cars      63      100.0000     0.9844  1.0000 0.9921\n   cats      30       96.6667     1.0000  0.9667 0.9831\n   dogs      31      100.0000     0.9688  1.0000 0.9841\nflowers      32      100.0000     1.0000  1.0000 1.0000\n horses      28      100.0000     1.0000  1.0000 1.0000\n  human      27      100.0000     1.0000  1.0000 1.0000\n\n              precision    recall  f1-score   support\n\n        bike     1.0000    0.9815    0.9907        54\n        cars     0.9844    1.0000    0.9921        63\n        cats     1.0000    0.9667    0.9831        30\n        dogs     0.9688    1.0000    0.9841        31\n     flowers     1.0000    1.0000    1.0000        32\n      horses     1.0000    1.0000    1.0000        28\n       human     1.0000    1.0000    1.0000        27\n\n    accuracy                         0.9925       265\n   macro avg     0.9933    0.9926    0.9929       265\nweighted avg     0.9926    0.9925    0.9924       265\n\n"
+ },
+ {
+  "cell": 31,
+  "first_line": "# fig: per_class_accuracy",
+  "output": "[figura]"
+ },
+ {
+  "cell": 32,
+  "first_line": "# fig: confusion_matrix",
+  "output": "[figura]\nConfusões mais frequentes (real -> predito): [('cats->dogs', 1), ('bike->cars', 1)]\n"
+ },
+ {
+  "cell": 33,
+  "first_line": "# fig: error_examples",
+  "output": "[figura]"
+ },
+ {
+  "cell": 36,
+  "first_line": "# fig: augmentation_examples",
+  "output": "[figura]"
+ },
+ {
+  "cell": 41,
+  "first_line": "metrics = {",
+  "output": "{\n  \"activity\": \"A3\",\n  \"dataset\": \"pavansanagapati/images-dataset\",\n  \"model\": \"efficientnet_b0 IMAGENET1K_V1, backbone congelado, head Linear(1280, 7)\",\n  \"n_images_clean\": 1764,\n  \"n_corrupted\": 0,\n  \"n_duplicates_removed\": 39,\n  \"split\": {\n    \"train\": 1234,\n    \"val\": 265,\n    \"test\": 265\n  },\n  \"imbalance_ratio\": 2.295,\n  \"total_params\": 4016515,\n  \"trainable_params\": 8967,\n  \"test_accuracy\": 99.25,\n  \"test_macro_f1\": 0.9929,\n  \"test_per_class_accuracy\": {\n    \"bike\": 98.15,\n    \"cars\": 100.0,\n    \"cats\": 96.67,\n    \"dogs\": 100.0,\n    \"flowers\": 100.0,\n    \"horses\": 100.0,\n    \"human\": 100.0\n  },\n  \"best_epoch\": 15,\n  \"epochs_run\": 15,\n  \"best_val_loss\": 0.0499,\n  \"best_val_acc\": 99.62,\n  \"train_time_s\": 158.1,\n  \"peak_vram_train_mb\": 723,\n  \"benchmark_vram\": [\n    {\n      \"modelo\": \"efficientnet_b0\",\n      \"modo\": \"feature extraction\",\n      \"params treináveis\": 8967,\n      \"ms/passo (batch 64)\": 68.5,\n      \"VRAM pico (MB)\": 707\n    },\n    {\n      \"modelo\": \"efficientnet_b0\",\n      \"modo\": \"fine-tuning completo\",\n      \"params treináveis\": 4016515,\n      \"ms/passo (batch 64)\": 280.4,\n      \"VRAM pico (MB)\": 5550\n    },\n    {\n      \"modelo\": \"resnet50\",\n      \"modo\": \"feature extraction\",\n      \"params treináveis\": 14343,\n      \"ms/passo (batch 64)\": 166.5,\n      \"VRAM pico (MB)\": 783\n    },\n    {\n      \"modelo\": \"resnet50\",\n      \"modo\": \"fine-tuning completo\",\n      \"params treináveis\": 23522375,\n      \"ms/passo (batch 64)\": 596.0,\n      \"VRAM pico (MB)\": 5611\n    }\n  ],\n  \"notebook_time_s\": 219.0,\n  \"gpu\": \"Tesla T4\"\n}\n"
+ }
+]
