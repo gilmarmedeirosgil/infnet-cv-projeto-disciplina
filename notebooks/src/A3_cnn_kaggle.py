@@ -6,15 +6,18 @@
 #
 # **Objetivo.** Classificar as 7 classes do dataset Kaggle `pavansanagapati/images-dataset` (bike, cars, cats, dogs, flowers, horses, human) com uma CNN pré-treinada no ImageNet usada como **extratora de features**: backbone congelado e apenas um novo head linear treinado.
 #
-# **Requisitos de execução (Colab, runtime T4)** — valores medidos no "Executar tudo" (Tesla T4, 14,56 GB de VRAM), exceto RAM e disco, que são estimativas:
+# **Requisitos de execução (Colab, runtime T4)** — valores medidos no "Executar tudo" (Tesla T4, 14,56 GB de VRAM); todos são registrados no JSON da seção 10:
 #
 # | Recurso | Valor | Observação |
 # |---|---|---|
-# | RAM | ~3 GB (estimativa, não medida) | 1.803 imagens decodificadas sob demanda (não ficam em memória) |
-# | VRAM (treino real) | **0,7 GB** (723 MB de pico) | backbone congelado: o autograd não guarda ativações do backbone |
-# | VRAM (pico do notebook) | **~5,6 GB** (5.611 MB) | benchmark sintético de *fine-tuning* completo da ResNet-50 (seção 4), batch 64, fp32 |
+# | RAM | pico do processo `ram_maxrss_mb` (+ `ram_maxrss_children_mb` dos workers do DataLoader) | medido com `resource.getrusage` e `psutil`; as imagens são decodificadas sob demanda |
+# | VRAM (treino real) | **0,7 GB** (723 MB alocados no pico; reservada em `peak_vram_train_reserved_mb`) | backbone congelado: o autograd não guarda ativações do backbone |
+# | VRAM (pico do notebook) | **~5,6 GB** (5.611 MB alocados) | benchmark sintético de *fine-tuning* completo da ResNet-50 (seção 4), batch 64, fp32 |
 # | Disco | ~0,5 GB (estimativa) | dataset + pesos da EfficientNet-B0 (20,5 MB) |
-# | Tempo total | **~3,7 min** (219 s) + download | treino de 15 épocas: 158 s (~10 s/época). O download do dataset não entra nos 219 s: nesta execução o Colab usou o cache do Kaggle; num runtime sem cache, somar ~1 min |
+# | Tempo total | **~3,7 min** na execução anterior (219 s, sem pip nem download) | agora `notebook_time_s` conta desde a **primeira célula de código** (pip) até o JSON, e inclui a montagem do Drive (com a espera pela autorização) e o download; `pip_time_s`, `download_time_s` e `train_time_s` são registrados à parte. Treino de 15 épocas: ~158 s (~10 s/época) |
+#
+# <!-- ANALISE: atualizar RAM, VRAM reservada e tempos com o metrics.json da nova execução. -->
+
 #
 # **Mapa da rubrica:** 1.1 → seção 5 · 1.2 → seções 6–7 · 1.3 → seção 8 · 1.4 → seção 9 · 1.5 → seção 4.
 #
@@ -25,11 +28,18 @@
 # Seed 42 em `random`, `numpy` e `torch` (padrão da Aula 1), checagem da GPU, montagem do Drive para persistir os artefatos e leitura dos Secrets do Kaggle.
 
 # %%
-!pip install -q kagglehub
+import time
+NOTEBOOK_T0 = time.time()
+!pip install -q kagglehub imagehash
+PIP_TIME_S = time.time() - NOTEBOOK_T0
+print(f"pip: {PIP_TIME_S:.1f}s")
 
 # %%
-import os, gc, copy, json, time, random, hashlib
+import os, gc, copy, json, time, random, hashlib, resource
 from pathlib import Path
+
+import psutil
+import imagehash
 
 import numpy as np
 import pandas as pd
@@ -46,7 +56,6 @@ from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights, resnet5
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report, precision_recall_fscore_support, f1_score
 
-NOTEBOOK_T0 = time.time()
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
@@ -66,6 +75,13 @@ else:
 C_BLUE, C_CYAN, C_RED, C_GREEN = "#0A345D", "#1BB5D8", "#DC2626", "#15803D"
 plt.rcParams.update({"axes.grid": True, "grid.linestyle": ":", "figure.dpi": 110})
 
+def ram_stats():
+    """RSS atual e pico (ru_maxrss em KB no Linux) do processo e dos filhos (workers do DataLoader), em MB."""
+    return {"ram_rss_mb": round(psutil.Process().memory_info().rss / 2**20),
+            "ram_maxrss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024),
+            "ram_maxrss_children_mb": round(resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024)}
+print("RAM:", ram_stats())
+
 # %%
 try:
     from google.colab import drive
@@ -77,8 +93,14 @@ except Exception as e:
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 print("Artefatos em:", OUT_DIR)
 
-def savefig(name):
-    plt.savefig(OUT_DIR / f"A3_{name}.png", dpi=150, bbox_inches="tight")
+def savefig(name, dpi=150, max_kb=1000):
+    """Salva o PNG; se passar de max_kb, re-salva com dpi menor (determinístico)."""
+    path = OUT_DIR / f"A3_{name}.png"
+    for d in sorted({dpi, 100, 80, 60} - {x for x in (100, 80, 60) if x > dpi}, reverse=True):
+        plt.savefig(path, dpi=d, bbox_inches="tight")
+        if path.stat().st_size / 1024 <= max_kb:
+            break
+    print(f"{path.name}: {path.stat().st_size / 1024:.0f} KB (dpi {d})")
 
 # %%
 def load_kaggle_credentials():
@@ -97,8 +119,10 @@ def load_kaggle_credentials():
 
 load_kaggle_credentials()
 import kagglehub
+t0 = time.time()
 DATASET_PATH = Path(kagglehub.dataset_download("pavansanagapati/images-dataset"))
-print("Dataset em:", DATASET_PATH)
+DOWNLOAD_TIME_S = time.time() - t0
+print(f"Dataset em: {DATASET_PATH} | download/cache: {DOWNLOAD_TIME_S:.1f}s")
 
 # %% [markdown]
 # ## 2. Dados e EDA
@@ -167,6 +191,28 @@ print("Modo de cor:", df_ok["mode"].value_counts().to_dict())
 print("Extensão:", df_ok.ext.value_counts().to_dict())
 print("\nModo de cor por classe:\n", pd.crosstab(df_ok.cls, df_ok["mode"]).to_string())
 
+# %% [markdown]
+# **Canal alfa.** A composição sobre fundo branco em `load_rgb` só altera pixels com alfa < 255. Para cada imagem com canal alfa (ou paleta com transparência) mede-se a fração de pixels não opacos; se for zero em todas, a composição não muda nenhum pixel.
+
+# %%
+def alpha_fraction(path):
+    with Image.open(path) as im:
+        if not (im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info)):
+            return np.nan
+        return float((np.asarray(im.convert("RGBA").getchannel("A")) < 255).mean())
+
+df_ok["alpha_frac"] = [alpha_fraction(p) for p in df_ok.path]
+with_alpha = df_ok.dropna(subset=["alpha_frac"])
+alpha_summary = {cls: {"n_images_with_alpha": int(len(g)), "mean_frac_alpha_lt_255": round(float(g.alpha_frac.mean()), 6),
+                       "max_frac_alpha_lt_255": round(float(g.alpha_frac.max()), 6),
+                       "n_images_any_transparent": int((g.alpha_frac > 0).sum())}
+                 for cls, g in with_alpha.groupby("cls")}
+print(f"Imagens com canal alfa: {len(with_alpha)}")
+print(pd.DataFrame(alpha_summary).T.to_string() if alpha_summary else "Nenhuma imagem com canal alfa.")
+
+# %% [markdown]
+# <!-- ANALISE: comentar a fração de pixels com alfa < 255 nas flowers (se 0 em todas, a composição em branco é inócua e o risco de atalho fica só em resolução/compressão). -->
+
 # %%
 md5_classes = df_ok.groupby("md5").cls.nunique()
 conflicting = md5_classes[md5_classes > 1].index
@@ -179,6 +225,18 @@ counts = df.cls.value_counts().reindex(CLASS_NAMES)
 imbalance_ratio = counts.max() / counts.min()
 print(pd.DataFrame({"n": counts, "%": (100 * counts / counts.sum()).round(1)}).to_string())
 print(f"Razão de desbalanceamento (maior/menor): {imbalance_ratio:.2f}")
+
+def value_counts_dict(s):
+    return {str(k): int(v) for k, v in s.value_counts().items()}
+
+eda_summary = {
+    "formats": value_counts_dict(df.format),
+    "modes": value_counts_dict(df["mode"]),
+    "per_class": {cls: {"n": int(len(g)), "formats": value_counts_dict(g.format), "modes": value_counts_dict(g["mode"]),
+                        "median_width": float(g.width.median()), "median_height": float(g.height.median())}
+                  for cls, g in df.groupby("cls")},
+}
+print(json.dumps(eda_summary["per_class"], indent=1))
 
 # %%
 # fig: class_counts
@@ -196,7 +254,7 @@ plt.show()
 # fig: samples_grid
 N_PER_CLASS = 6
 rng = np.random.default_rng(SEED)
-fig, axes = plt.subplots(NUM_CLASSES, N_PER_CLASS, figsize=(2 * N_PER_CLASS, 2 * NUM_CLASSES))
+fig, axes = plt.subplots(NUM_CLASSES, N_PER_CLASS, figsize=(1.6 * N_PER_CLASS, 1.6 * NUM_CLASSES), dpi=80)
 for r, cls in enumerate(CLASS_NAMES):
     paths = df[df.cls == cls].path.values
     for c, p in enumerate(rng.choice(paths, N_PER_CLASS, replace=False)):
@@ -207,7 +265,7 @@ for r, cls in enumerate(CLASS_NAMES):
             ax.set_ylabel(cls, fontsize=12, fontweight="bold")
 plt.suptitle("Amostras aleatórias por classe", fontweight="bold")
 plt.tight_layout()
-savefig("samples_grid")
+savefig("samples_grid", dpi=100)
 plt.show()
 
 # %%
@@ -241,7 +299,7 @@ plt.show()
 #    | flowers | **PNG, 210/210** | **RGBA, 210/210** | **128×128, todas iguais** |
 #    | cats, dogs, horses, human | JPEG (808) | RGB | variável (≈190–460 px; human em retrato, razão 0,73) |
 #
-#    Nenhuma imagem está em tons de cinza no modo `L` e nenhuma outra classe tem canal alfa, então só as 210 flowers passaram pela composição sobre fundo branco em `load_rgb`. Na grade de amostras as flowers aparecem com fundo natural (folhas, céu), o que sugere que o alfa é todo ou quase todo opaco e que a composição não muda os pixels; isso **não foi medido** (falta contar os pixels com A < 255). O formato em si não chega ao modelo, porque tudo vira tensor RGB, mas os **traços** dele chegam: flowers são as únicas imagens ampliadas 2× (128 → 256 no resize), portanto mais borradas e sem artefatos de compressão; bike/cars vêm de uma mesma fonte de fotos de rua 640×480; as outras quatro classes têm blocos JPEG. Isso abre espaço para *shortcut learning* (Geirhos et al., 2020): o head pode separar classes por nitidez ou resolução, e não por conteúdo. O risco é discutido na seção 7 com os resultados.
+#    Nenhuma imagem está em tons de cinza no modo `L` e nenhuma outra classe tem canal alfa, então só as 210 flowers passaram pela composição sobre fundo branco em `load_rgb`. Na grade de amostras as flowers aparecem com fundo natural (folhas, céu), o que sugere que o alfa é todo ou quase todo opaco e que a composição não muda os pixels; a célula "Canal alfa" acima mede a fração de pixels com A < 255 por imagem. <!-- ANALISE: confirmar/refutar com alpha_summary. --> O formato em si não chega ao modelo, porque tudo vira tensor RGB, mas os **traços** dele chegam: flowers são as únicas imagens ampliadas 2× (128 → 256 no resize), portanto mais borradas e sem artefatos de compressão; bike/cars vêm de uma mesma fonte de fotos de rua 640×480; as outras quatro classes têm blocos JPEG. Isso abre espaço para *shortcut learning* (Geirhos et al., 2020): o head pode separar classes por nitidez ou resolução, e não por conteúdo. O risco é discutido na seção 7 com os resultados.
 # 3. **Conteúdo.** A grade mostra que bike e cars são cenas de rua com o objeto muitas vezes pequeno e fora do centro; human é quase só de **cavaleiros em roupa de equitação**, às vezes com o cavalo na foto (rótulo único para uma cena com dois objetos); horses mistura fotos com desenhos, pinturas e imagens em tons de cinza guardadas como RGB. Não há erro de rótulo evidente nas amostras.
 # 4. **Tamanho e razão de aspecto.** O pico em 1,33 (4:3) vem de bike/cars; o pico em 1,0 é flowers; human fica abaixo de 1. O pré-processamento (resize do lado menor para 256 + center crop 224) descarta ~17% da largura de cada lado numa imagem 4:3, o que pode cortar bicicletas e carros encostados na borda; em human (retrato) corta-se em cima e embaixo, onde ficam cabeça e pés. As imagens pequenas (flowers com 128 px, várias human/horses com < 200 px) são ampliadas e perdem nitidez em relação às demais.
 # 5. **Desbalanceamento.** Razão maior/menor de **2,30** (cars 420 vs horses/human 183). É moderado: o split estratificado preserva as proporções e a avaliação usa accuracy por classe e macro-F1, que não escondem as classes menores. Não foram usados pesos de classe, porque todas as classes têm ≥ 128 imagens de treino; se as classes menores tivessem recall pior, pesos de classe seriam o próximo passo (a seção 7 mostra que não foi o caso).
@@ -263,6 +321,72 @@ assert not (set(train_df.md5) & set(val_df.md5) or set(train_df.md5) & set(test_
 
 pd.concat([d.assign(split=s) for s, d in [("train", train_df), ("val", val_df), ("test", test_df)]])[
     ["path", "cls", "label", "split"]].to_csv(OUT_DIR / "A3_split.csv", index=False)
+
+# %% [markdown]
+# ### 3.1 Quase-duplicatas entre partições (auditoria de vazamento)
+# O MD5 só pega cópias byte a byte. A mesma foto reescalada, recomprimida ou com pequena edição tem outro MD5 e pode cair em treino e teste. Para auditar isso, calcula-se o **pHash** (`imagehash.phash`, 64 bits, a partir da DCT 32×32 da imagem em cinza) de todas as imagens e a distância de Hamming entre todos os pares.
+#
+# **Limiar: distância ≤ 4 (de 64 bits).** Imagens não relacionadas ficam em torno de 32 bits de distância (hashes ~independentes); cópias reescaladas ou recomprimidas da mesma foto ficam tipicamente em 0–4, porque essas operações quase não mudam as componentes de baixa frequência da DCT. Um limiar mais frouxo (8–10) começa a juntar fotos diferentes com a mesma composição (p.ex. carros de frente em fundo de rua), e 4 é conservador (poucos falsos positivos). Os pares são mostrados na figura para conferência visual.
+#
+# **O split não é alterado** (o modelo já foi treinado e avaliado com ele). Em vez disso, a seção 7 também avalia o teste **excluindo** as imagens de teste com quase-duplicata no treino ("teste limpo").
+
+# %%
+PHASH_THRESHOLD = 4
+split_df = pd.concat([d.assign(split=s) for s, d in [("train", train_df), ("val", val_df), ("test", test_df)]], ignore_index=True)
+t0 = time.time()
+split_df["phash"] = [str(imagehash.phash(load_rgb(p))) for p in split_df.path]
+bits = np.array([np.unpackbits(np.frombuffer(bytes.fromhex(h), dtype=np.uint8)) for h in split_df.phash], dtype=np.float32)
+signs = 2 * bits - 1
+hamming = np.rint((bits.shape[1] - signs @ signs.T) / 2).astype(int)
+ia, ib = np.where(np.triu(hamming <= PHASH_THRESHOLD, k=1))
+print(f"pHash de {len(split_df)} imagens em {time.time() - t0:.1f}s")
+
+near_dup_df = pd.DataFrame({
+    "path_a": split_df.path.values[ia], "split_a": split_df.split.values[ia], "cls_a": split_df.cls.values[ia],
+    "path_b": split_df.path.values[ib], "split_b": split_df.split.values[ib], "cls_b": split_df.cls.values[ib],
+    "hamming": hamming[ia, ib]})
+near_dup_df["pair"] = ["×".join(sorted((a, b), key=["train", "val", "test"].index)) for a, b in zip(near_dup_df.split_a, near_dup_df.split_b)]
+near_dup_df["same_class"] = near_dup_df.cls_a == near_dup_df.cls_b
+near_dup_df = near_dup_df.sort_values(["hamming", "pair", "path_a", "path_b"]).reset_index(drop=True)
+near_dup_df.to_csv(OUT_DIR / "A3_near_duplicates.csv", index=False)
+
+PAIR_TYPES = ["train×train", "val×val", "test×test", "train×val", "train×test", "val×test"]
+near_dup_counts = {t: int((near_dup_df.pair == t).sum()) for t in PAIR_TYPES}
+print(f"Pares com Hamming ≤ {PHASH_THRESHOLD}: {len(near_dup_df)} (rótulos diferentes: {int((~near_dup_df.same_class).sum())})")
+print(pd.Series(near_dup_counts, name="pares").to_string())
+if len(near_dup_df):
+    print("\nPor classe (classe da imagem a):\n", pd.crosstab(near_dup_df.cls_a, near_dup_df.pair).to_string())
+
+test_paths = set(test_df.path)
+cross_tt = near_dup_df[near_dup_df.pair == "train×test"]
+test_leaky_paths = sorted({a if a in test_paths else b for a, b in zip(cross_tt.path_a, cross_tt.path_b)})
+print(f"\nImagens de teste com quase-duplicata no treino: {len(test_leaky_paths)} de {len(test_df)}")
+
+# %%
+# fig: near_duplicates
+cross = near_dup_df[near_dup_df.pair.isin(["train×val", "train×test", "val×test"])]
+show_pairs = (cross if len(cross) else near_dup_df).head(8)
+if len(show_pairs):
+    n_rows = int(np.ceil(len(show_pairs) / 2))
+    fig, axes = plt.subplots(n_rows, 4, figsize=(12, 3.2 * n_rows), squeeze=False, dpi=80)
+    for ax in axes.flat:
+        ax.axis("off")
+    for k, (_, r) in enumerate(show_pairs.iterrows()):
+        for j, side in enumerate("ab"):
+            ax = axes[k // 2, 2 * (k % 2) + j]
+            ax.imshow(load_rgb(r[f"path_{side}"]))
+            ax.set_title(f"{r[f'split_{side}']}/{r[f'cls_{side}']} (d={r.hamming})", fontsize=9,
+                         color=C_BLUE if r.same_class else C_RED, fontweight="bold")
+    kind = "entre partições" if len(cross) else "dentro das partições (não há pares entre partições)"
+    plt.suptitle(f"Quase-duplicatas por pHash, Hamming ≤ {PHASH_THRESHOLD}: {kind}", fontweight="bold")
+    plt.tight_layout()
+    savefig("near_duplicates", dpi=100)
+    plt.show()
+else:
+    print("Nenhum par de quase-duplicatas com o limiar escolhido.")
+
+# %% [markdown]
+# <!-- ANALISE: quantos pares dentro/entre partições, em quais classes, se são mesma foto reescalada/recomprimida ou só composição parecida (conferir na figura), e quantas imagens de teste têm par no treino. -->
 
 # %% [markdown]
 # ## 4. Escolha do modelo — **Rubrica 1.5**
@@ -325,7 +449,8 @@ def benchmark_step(arch, finetune, batch_size=64, steps=10, warmup=3):
     row = {"modelo": arch, "modo": "fine-tuning completo" if finetune else "feature extraction",
            "params treináveis": sum(p.numel() for p in params),
            "ms/passo (batch 64)": round((time.time() - t0) / steps * 1000, 1),
-           "VRAM pico (MB)": round(torch.cuda.max_memory_allocated() / 2**20)}
+           "VRAM pico (MB)": round(torch.cuda.max_memory_allocated() / 2**20),
+           "VRAM reservada pico (MB)": round(torch.cuda.max_memory_reserved() / 2**20)}
     del model, opt, x, y, params
     gc.collect(); torch.cuda.empty_cache()
     return row
@@ -478,9 +603,13 @@ for epoch in range(1, EPOCHS + 1):
         break
 train_time_s = time.time() - t_train
 peak_vram_train_mb = torch.cuda.max_memory_allocated() / 2**20 if torch.cuda.is_available() else None
+peak_vram_train_reserved_mb = torch.cuda.max_memory_reserved() / 2**20 if torch.cuda.is_available() else None
+ram_after_train = ram_stats()
 hist_df = pd.DataFrame(history)
-print(f"\nMelhor época: {best_epoch} (val loss {best_val_loss:.4f}) | tempo de treino: {train_time_s:.1f}s"
-      + (f" | VRAM pico no treino: {peak_vram_train_mb:.0f} MB" if peak_vram_train_mb else ""))
+print(f"\nMelhor época: {best_epoch} (val loss {best_val_loss:.4f}) | tempo de treino: {train_time_s:.1f}s")
+if peak_vram_train_mb:
+    print(f"VRAM pico no treino: {peak_vram_train_mb:.0f} MB alocados | {peak_vram_train_reserved_mb:.0f} MB reservados pelo cache do PyTorch")
+print("RAM após o treino:", ram_after_train)
 
 model.classifier.load_state_dict(best_head)
 backbone_now = model.features.state_dict()
@@ -504,9 +633,9 @@ plt.show()
 # **Análise das curvas**
 #
 # 1. **Convergência muito rápida.** Depois de **uma** época a val acc já é 98,11% (260/265); da época 2 à 8 fica em 99,25% (263/265) e da 9 em diante em 99,62% (264/265). Em accuracy, o treino inteiro mudou o destino de **uma única imagem de validação** depois da época 2. A loss continua caindo (val 0,400 → 0,161 → 0,076 na época 5 → 0,050), o que indica que o head está ficando mais confiante nas imagens que já acertava, não acertando imagens novas.
-# 2. **Sem overfitting.** Nas épocas 1–4 a loss de treino fica **acima** da de validação (1,058 vs 0,400 na época 1). Há dois motivos: a loss de treino é a média ao longo da época, enquanto o head ainda está aprendendo, e o dropout de 0,2 do head fica ativo no treino e desligado na validação. A partir da época 6 as curvas se cruzam e terminam com um gap pequeno e estável (train 0,038, val 0,050 na época 15; train acc 99,68% vs val 99,62%). Com 8.967 parâmetros (~7 por imagem de treino) sobre features fixas, o head é praticamente uma regressão logística e tem pouca capacidade de memorizar.
-# 3. **A melhor época foi a última (15), e o early stopping não disparou.** A val loss melhorou em **todas** as 15 épocas, mas nas últimas cinco o ganho foi de só 0,0018 (0,0517 → 0,0499), porque o *cosine* levou a LR de 1e-3 para 1,1e-5. Duas leituras: (i) o critério é `<` estrito, sem `min_delta`, então qualquer melhora de 1e-4 zera a paciência; mesmo com `min_delta=1e-3` a melhor época seria a 13 e a paciência de 4 não se esgotaria antes do limite de 15 épocas, ou seja, o early stopping nunca teve espaço para agir neste orçamento; (ii) a loss **ainda não convergiu** de fato: foi o calendário da LR que a congelou. Mais épocas ou LR inicial maior (p.ex. 3e-3) reduziriam mais a loss, mas como treino e validação já estão ~separáveis linearmente, isso aumentaria sobretudo o tamanho dos pesos e a confiança das predições, com ganho esperado de no máximo 1 imagem de validação e risco de sobreconfiança. O que o cosine fez de útil foi estabilizar o fim: as curvas ficaram planas, sem oscilação.
-# 4. **Custo.** ~10 s por época (158 s no total, pico de 723 MB). Como o backbone é fixo e não há augmentation, quase todo esse tempo é decodificação/redimensionamento das imagens e o forward do backbone, repetidos 15 vezes para produzir as mesmas features. Pré-computar as features uma vez deixaria o treino do head em menos de 1 s por época (seção 5).
+# 2. **Sem overfitting.** Nas épocas 1–4 a loss de treino fica **acima** da de validação (1,058 vs 0,400 na época 1). Há dois motivos: a loss de treino é a média ao longo da época, enquanto o head ainda está aprendendo, e o dropout de 0,2 do head fica ativo no treino e desligado na validação. As curvas se cruzam na época 5 (empate) e daí em diante terminam com um gap pequeno e estável (train 0,038, val 0,050 na época 15; train acc 99,68% vs val 99,62%). Com 8.967 parâmetros (~7 por imagem de treino) sobre features fixas, o head é praticamente uma regressão logística e tem pouca capacidade de memorizar.
+# 3. **A melhor época foi a última (15), e o early stopping não disparou.** A val loss melhorou em **todas** as 15 épocas, mas nas últimas cinco o ganho foi de só 0,0018 (0,0517 → 0,0499), porque o *cosine* levou a LR de 1e-3 para 1,1e-5. Duas leituras: (i) o critério é `<` estrito, sem `min_delta`, então qualquer melhora de 1e-4 zera a paciência; mesmo com `min_delta=1e-3` a melhor época seria a 12 ou a 13, dependendo do arredondamento, e a paciência de 4 não se esgotaria antes do limite de 15 épocas, ou seja, o early stopping nunca teve espaço para agir neste orçamento; (ii) a loss **ainda não convergiu** de fato: foi o calendário da LR que a congelou. Mais épocas ou LR inicial maior (p.ex. 3e-3) reduziriam mais a loss, mas como treino e validação já estão ~separáveis linearmente, isso aumentaria sobretudo o tamanho dos pesos e a confiança das predições, com ganho esperado de no máximo 1 imagem de validação e risco de sobreconfiança. O que o cosine fez de útil foi estabilizar o fim: as curvas ficaram planas, sem oscilação.
+# 4. **Custo.** ~10 s por época (158 s no total, pico de 723 MB). Como o backbone é fixo e não há augmentation, quase todo esse tempo é decodificação/redimensionamento das imagens e o forward do backbone, repetidos 15 vezes para produzir as mesmas features. Pré-computar as features uma vez deixaria o treino do head em menos de 1 s por época (seção 5). <!-- ANALISE: citar a RAM medida após o treino (ram_after_train) e a VRAM reservada vs alocada. -->
 
 # %% [markdown]
 # ## 7. Avaliação no conjunto de teste — **Rubrica 1.2**
@@ -528,8 +657,17 @@ print(f"Accuracy global (test): {test_acc:.2f}% | macro-F1: {macro_f1:.4f} | tes
 print(per_class_df.to_string(index=False))
 print("\n" + classification_report(y_true, y_pred, target_names=CLASS_NAMES, digits=4))
 
-test_pred_df = test_df[["path", "cls"]].assign(pred=[CLASS_NAMES[i] for i in y_pred], conf=P.max(1).round(4))
+test_pred_df = test_df[["path", "cls"]].assign(pred=[CLASS_NAMES[i] for i in y_pred], conf=P.max(1).round(4),
+                                               near_dup_in_train=test_df.path.isin(test_leaky_paths))
 test_pred_df.to_csv(OUT_DIR / "A3_test_predictions.csv", index=False)
+
+clean = ~test_pred_df.near_dup_in_train.values
+test_acc_clean = 100.0 * (y_true[clean] == y_pred[clean]).mean()
+macro_f1_clean = f1_score(y_true[clean], y_pred[clean], average="macro", labels=range(NUM_CLASSES), zero_division=0)
+print(f"\nTeste limpo (sem as {int((~clean).sum())} imagens com quase-duplicata no treino): "
+      f"{int(clean.sum())} imagens | accuracy {test_acc_clean:.2f}% | macro-F1 {macro_f1_clean:.4f}")
+print(f"Accuracy nas imagens de teste COM quase-duplicata no treino: "
+      + (f"{100.0 * (y_true[~clean] == y_pred[~clean]).mean():.2f}%" if (~clean).any() else "n/a (nenhuma)"))
 
 # %%
 # fig: per_class_accuracy
@@ -573,16 +711,28 @@ print("Confusões mais frequentes (real -> predito):", [(f"{a}->{b}", int(n)) fo
 wrong = test_pred_df[test_pred_df.cls != test_pred_df.pred]
 show = wrong.sort_values("conf", ascending=False) if len(wrong) else test_pred_df.sort_values("conf").head(8)
 title = f"Erros no teste ({len(wrong)} de {len(test_pred_df)})" if len(wrong) else "Sem erros: 8 acertos de menor confiança"
-show = show.head(16)
-n_cols = 4
+show = show.head(8)
+IMNET_MEAN, IMNET_STD = np.array(preprocess.mean), np.array(preprocess.std)
+
+def model_input_image(path):
+    """Exatamente o tensor que entra no modelo (resize 256 + center crop 224), desnormalizado para exibição."""
+    x = preprocess(load_rgb(path)).numpy().transpose(1, 2, 0)
+    return np.clip(x * IMNET_STD + IMNET_MEAN, 0, 1)
+
+n_cols = min(4, len(show))
 n_rows = max(1, int(np.ceil(len(show) / n_cols)))
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 4 * n_rows), squeeze=False)
+fig, axes = plt.subplots(n_rows, 2 * n_cols, figsize=(3.2 * 2 * n_cols, 3.6 * n_rows), squeeze=False)
 for ax in axes.flat:
     ax.axis("off")
-for ax, (_, r) in zip(axes.flat, show.iterrows()):
-    ax.imshow(load_rgb(r.path))
+for k, (_, r) in enumerate(show.iterrows()):
+    ax_orig, ax_in = axes[k // n_cols, 2 * (k % n_cols)], axes[k // n_cols, 2 * (k % n_cols) + 1]
+    orig = load_rgb(r.path)
     ok = r.cls == r.pred
-    ax.set_title(f"real: {r.cls} | pred: {r.pred} ({100 * r.conf:.0f}%)", color=C_GREEN if ok else C_RED, fontweight="bold", fontsize=10)
+    ax_orig.imshow(orig)
+    ax_orig.set_title(f"real: {r.cls} | pred: {r.pred} ({100 * r.conf:.0f}%)\noriginal {orig.size[0]}×{orig.size[1]}",
+                      color=C_GREEN if ok else C_RED, fontweight="bold", fontsize=9)
+    ax_in.imshow(model_input_image(r.path))
+    ax_in.set_title("entrada do modelo\n(resize 256 + crop 224)", fontsize=9)
 plt.suptitle(title, fontweight="bold")
 plt.tight_layout()
 savefig("error_examples")
@@ -592,6 +742,8 @@ plt.show()
 # **Análise dos resultados no teste**
 #
 # **Números.** Accuracy global **99,25%** (263/265), **macro-F1 0,9929**, test loss 0,063. Só 2 erros: 1 bike → cars e 1 cats → dogs. Cinco classes ficaram em 100%. A precision de cars (0,984) e de dogs (0,969) cai pelos mesmos dois erros.
+#
+# **Teste limpo (sem quase-duplicatas do treino).** <!-- ANALISE: comparar accuracy/macro-F1 no teste completo vs no teste limpo (seção 3.1) e dizer se o vazamento por quase-duplicata infla o resultado. -->
 #
 # **Incerteza: 265 imagens medem pouco.** Com 2 erros em 265, o intervalo de Wilson de 95% para a accuracy global é **[97,3%; 99,8%]**. Por classe é bem mais largo, porque 1 erro vale 1,9 p.p. em bike (54 imagens) e 3,3 p.p. em cats (30):
 #
@@ -606,10 +758,10 @@ plt.show()
 # Na prática, "96,7% em cats" e "100% em horses" não são distinguíveis com esse teste. Os 100% por classe dizem que a accuracy real provavelmente passa de ~88–94%, não que é perfeita. A validação conta a mesma história (264/265), então as duas partições juntas somam 3 erros em 530 imagens (99,4%).
 #
 # **Os dois erros (figura `A3_error_examples.png`).**
-# - **cats → dogs (78%)**: gato preto, em retrato, sobre fundo branco estourado, com uma mão humana fazendo carinho e uma coleira verde. Coleira e mão são pistas de contexto típicas de "cachorro", e o pelo preto sem contraste esconde a textura. Há também um efeito do pré-processamento: numa imagem em retrato (≈200×350), o resize para lado menor 256 seguido do center crop 224 mantém só a faixa vertical de ~25% a ~75% da altura, e a cabeça do gato está no quarto superior. **O crop removeu boa parte do rosto** (orelhas e olhos), que é a parte que separa gato de cachorro, e deixou o corpo com a coleira.
-# - **bike → cars (68%)**: cena de rua em que a bicicleta ocupa uma fração pequena da imagem, encostada no muro à esquerda, e a cena é dominada por contêineres de lixo, calçada e asfalto. Não há carro na foto. Como bike e cars vêm da mesma fonte de cenas urbanas 640×480, o head aprendeu em parte o **contexto** "rua com asfalto" como pista de cars; quando o objeto é pequeno, o contexto vence. É um *shortcut* de contexto dentro do próprio dataset.
+# - **cats → dogs (78%)**: gato preto, em retrato, sobre fundo branco estourado, com uma mão humana fazendo carinho e uma coleira verde. *Hipótese:* coleira e mão podem funcionar como pistas de contexto de "cachorro", e o pelo preto sem contraste esconde a textura. Há também um provável efeito do pré-processamento, **inferido da geometria** e a confirmar no painel "entrada do modelo" da figura de erros: numa imagem em retrato (≈200×350), o resize para lado menor 256 seguido do center crop 224 mantém só a faixa vertical de ~25% a ~75% da altura, e a cabeça do gato está no quarto superior. Se for isso, **o crop removeu boa parte do rosto** (orelhas e olhos), que é a parte que separa gato de cachorro, e deixou o corpo com a coleira.
+# - **bike → cars (68%)**: cena de rua em que a bicicleta ocupa uma fração pequena da imagem, encostada no muro à esquerda, e a cena é dominada por contêineres de lixo, calçada e asfalto. Não há carro na foto. Como bike e cars vêm da mesma fonte de cenas urbanas 640×480, o erro **sugere** que o head usa em parte o **contexto** "rua com asfalto" como pista de cars e que, quando o objeto é pequeno, o contexto vence. É uma hipótese de *shortcut* de contexto, a verificar com Grad-CAM (abaixo).
 # - Os dois erros têm **confiança abaixo de 80%**. Para comparar: uma loss de teste de 0,063 equivale a uma probabilidade média geométrica de ~94% na classe correta (e^−0,063), e os dois erros ficam bem abaixo disso. Isso é compatível com uma opção de rejeição (mandar para revisão as predições com confiança < 0,8); o custo dessa regra em acertos rejeitados precisa ser medido em `A3_test_predictions.csv`.
-# - **Desbalanceamento:** não há relação entre tamanho da classe e erro. cars (a maior) acertou tudo, bike (a segunda maior) errou 1, e horses/human (as menores, 183 imagens) acertaram tudo. Os erros vêm do conteúdo da imagem (objeto pequeno, rosto cortado), não da frequência da classe.
+# - **Desbalanceamento:** não há relação entre tamanho da classe e erro. cars (a maior) acertou tudo, bike (a segunda maior) errou 1, e horses/human (as menores, 183 imagens) acertaram tudo. Os erros parecem vir do conteúdo da imagem (objeto pequeno, provável rosto cortado), não da frequência da classe.
 # - As confusões seguem os pares esperados (felino ↔ canino, veículo ↔ veículo). **Não houve** confusão horses ↔ human, apesar de human ser quase só de cavaleiros, às vezes com o cavalo na foto.
 #
 # **Risco de *shortcut*: o que os 100% em flowers podem significar.** Pela EDA, flowers é a única classe em PNG RGBA, toda em 128×128 (ampliada 2× pelo pré-processamento); bike/cars são todas BMP 640×480; as outras quatro são JPEG de tamanhos variados. Há duas explicações para o 100% em flowers, e **este teste não separa uma da outra**:
@@ -617,13 +769,13 @@ plt.show()
 # 2. *Atalho de aquisição*: o head pode estar usando a assinatura da imagem ampliada (borrão, pouca energia de alta frequência, ausência de blocos JPEG, possível borda da composição do alfa). Features congeladas de ImageNet codificam nitidez e textura, e um head linear pode explorá-las.
 #
 # Como o teste vem da **mesma fonte** do treino, ele carrega os mesmos artefatos, e as duas hipóteses preveem 100%. O fato de os dois erros ficarem dentro de um mesmo grupo de formato (bike/cars em BMP; cats/dogs em JPEG) é compatível com as duas hipóteses, porque esses grupos também são semanticamente próximos. Testes que eu faria para separar:
-# - **Medir o alfa**: fração de pixels com A < 255 por imagem de flowers. Se for zero, a composição em branco não importa e o risco se resume a resolução e compressão.
+# - **Medir o alfa**: fração de pixels com A < 255 por imagem de flowers (agora medida na seção 2, célula "Canal alfa"). Se for zero, a composição em branco não importa e o risco se resume a resolução e compressão. <!-- ANALISE: citar o resultado. -->
 # - **Troca contrafactual de aquisição**: reduzir imagens de teste de outras classes para 128×128, salvar em PNG e reclassificar; e, no sentido inverso, recomprimir as flowers em JPEG (q≈75). Se cats reduzidos passarem a ser "flowers", ou se as flowers em JPEG caírem, o atalho está confirmado.
 # - **Baseline de metadados**: um classificador só com (largura, altura, formato) já acerta flowers e separa {bike, cars} das demais. Isso prova que o vazamento **existe nos dados**; os testes acima mostram se o modelo **o usa**.
 # - **Grad-CAM** no último bloco convolucional (`features[8]`) para flowers e para os dois erros: a ativação deve cair nas pétalas, no rosto do gato e na bicicleta, não em bordas ou fundo.
 # - **Teste externo**: 30–50 imagens por classe de outra fonte (p.ex. flores em JPEG de alta resolução; bicicletas e carros fora das ruas dessa coleção). Esse é o único teste que mede generalização de verdade.
 #
-# Em resumo: 99,25% é um bom resultado **para esta distribuição**, mas não prova que o modelo aprendeu "flor", "bicicleta" e "carro" de forma transferível. Os erros mostram que ele usa contexto de cena, e a EDA mostra que a fonte e o formato das imagens estão amarrados às classes.
+# Em resumo: 99,25% é um bom resultado **para esta distribuição**, mas não prova que o modelo aprendeu "flor", "bicicleta" e "carro" de forma transferível. Os erros sugerem (hipótese a verificar com Grad-CAM) que ele usa contexto de cena, e a EDA mostra que a fonte e o formato das imagens estão amarrados às classes.
 
 # %% [markdown]
 # ## 8. Análise de data augmentation para este domínio — **Rubrica 1.3**
@@ -637,23 +789,32 @@ plt.show()
 #
 # **(b) Cor.**
 # - *Brilho/contraste leves* (`ColorJitter(0.2, 0.2)`): ajudam em todas as classes, simulando iluminação e câmeras diferentes.
-# - *Saturação/matiz fortes e grayscale* (`RandomGrayscale`): **prejudicam flowers**, cuja cor saturada é uma das pistas mais fortes contra as demais classes (e contra fundos verdes), e podem prejudicar horses/dogs/cats, em que a cor da pelagem ajuda a separar raças parecidas. Em cars a cor não define a classe, então jitter de matiz ajuda o modelo a não associar "vermelho" a "carro". A EDA não achou imagens no modo `L`, mas horses e human têm desenhos e fotos antigas em cinza/sépia guardados como RGB; um `RandomGrayscale` com p baixo (≈0,05) reduziria o atalho "imagem sem cor → horses/human", ao custo de apagar a pista de cor em flowers nessas poucas amostras.
+# - *Saturação/matiz fortes e grayscale* (`RandomGrayscale`): **prejudicam flowers**, cuja cor saturada é uma das pistas mais fortes contra as demais classes (e contra fundos verdes), e podem prejudicar horses/dogs/cats, em que a cor e o padrão da pelagem ajudam, ainda que pouco, a separar as espécies. Em cars a cor não define a classe, então jitter de matiz ajuda o modelo a não associar "vermelho" a "carro". A EDA não achou imagens no modo `L`, mas horses e human têm desenhos e fotos antigas em cinza/sépia guardados como RGB; um `RandomGrayscale` com p baixo (≈0,05) reduziria o atalho "imagem sem cor → horses/human", ao custo de apagar a pista de cor em flowers nessas poucas amostras.
 #
 # **(c) Escala / recorte.**
-# - `RandomResizedCrop(224, scale=(0.6, 1.0))` **ajuda**: os objetos aparecem em tamanhos muito diferentes (EDA de tamanhos) e o center crop fixo corta as bordas. O erro cats → dogs é exatamente isso: o crop central de uma imagem em retrato tirou o rosto do gato. Treinar com recortes em posições variadas expõe o head a vistas parciais; na inferência, a alternativa é redimensionar sem cortar (*padding*) ou usar TTA com vários recortes.
-# - Recortes agressivos (o padrão `scale=(0.08, 1.0)`) **prejudicam**: em bike e cars o recorte pode ficar só com uma roda ou só com asfalto, e em cenas como a do erro bike → cars (bicicleta pequena num canto) a maioria dos recortes **não contém bicicleta nenhuma**, o que vira ruído de rótulo e reforça o atalho "rua → cars". Em cats/dogs/horses, um recorte só de pelo remove a forma da cabeça, que é o que separa as três classes (a figura abaixo mostra um recorte só com o olho do gato e outro só com a pata do cavalo); em human, sobra só a roupa. O rótulo deixa de ser verdadeiro para o recorte.
+# - `RandomResizedCrop(224, scale=(0.6, 1.0))` **ajuda**: os objetos aparecem em tamanhos muito diferentes (EDA de tamanhos) e o center crop fixo corta as bordas. O erro cats → dogs parece ser isso: pela geometria, o crop central de uma imagem em retrato provavelmente tirou o rosto do gato (a confirmar na figura com a entrada real do modelo). Treinar com recortes em posições variadas expõe o head a vistas parciais; na inferência, a alternativa é redimensionar sem cortar (*padding*) ou usar TTA com vários recortes.
+# - Recortes agressivos (o padrão `scale=(0.08, 1.0)`) **prejudicam**: em bike e cars o recorte pode ficar só com uma roda ou só com asfalto, e em cenas como a do erro bike → cars (bicicleta pequena num canto) a maioria dos recortes **não contém bicicleta nenhuma**, o que vira ruído de rótulo e reforçaria o possível atalho "rua → cars". Em cats/dogs/horses, um recorte só de pelo remove a forma da cabeça, que é o que separa as três classes (a figura abaixo mostra um recorte só com o olho do gato e outro só com a pata do cavalo); em human, sobra só a roupa. O rótulo deixa de ser verdadeiro para o recorte.
 # - A razão de aspecto do crop também deve ficar próxima de 1 (padrão 3/4–4/3), para não achatar animais e veículos.
 #
 # **(d) Normalização.** Não é opcional: com o backbone congelado, a entrada **tem** de seguir a média/desvio do ImageNet (`weights.transforms()`), porque os pesos e as *running stats* do BN (fixas em `eval()`) foram calibrados nessa distribuição. Estatísticas do próprio dataset deslocariam a entrada de todas as camadas e degradariam as features de todas as classes. Nenhuma classe é "distorcida" pela normalização correta; o risco está em usar a errada.
 #
 # **(e) Resolução e compressão (específica deste dataset).** A EDA mostrou que resolução e formato estão amarrados à classe (flowers = 128×128 PNG; bike/cars = 640×480 BMP; demais = JPEG). Aplicar a **todas** as classes, com probabilidade ~0,3, uma redução aleatória para 96–160 px seguida de ampliação, e uma recompressão JPEG com qualidade 60–95 (`torchvision.transforms.v2.JPEG`), iguala as assinaturas de aquisição entre as classes e tira do head a pista "imagem borrada → flowers". Não distorce nenhuma classe, porque um humano reconhece todas elas em 128 px. É a augmentation que ataca o risco de *shortcut* discutido na seção 7.
 #
-# **Observação sobre feature extraction.** Com o backbone congelado, a augmentation só age através do head: o backbone não aprende invariâncias novas, então o ganho esperado é menor do que em fine-tuning, e ela impede pré-computar as features (cada época vê features diferentes). O pipeline recomendado, se houvesse um segundo treino, seria:
+# **Observação sobre feature extraction.** Com o backbone congelado, a augmentation só age através do head: o backbone não aprende invariâncias novas, então o ganho esperado é menor do que em fine-tuning, e ela impede pré-computar as features (cada época vê features diferentes). O pipeline recomendado, se houvesse um segundo treino, reúne as **5 estratégias recomendadas** da tabela abaixo (numeradas nos comentários), mais a normalização (d); requer `torchvision` ≥ 0.19 por causa de `v2.JPEG`:
 # ```python
-# train_tf = T.Compose([T.RandomResizedCrop(224, scale=(0.6, 1.0), interpolation=T.InterpolationMode.BICUBIC),
-#                       T.RandomHorizontalFlip(), T.RandomRotation(10), T.ColorJitter(0.2, 0.2, 0.1, 0.0),
-#                       T.RandomApply([T.Compose([T.Resize(128), T.Resize(224)])], p=0.3),  # (e) resolução
-#                       T.ToTensor(), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+# import torchvision.transforms.v2 as T2
+# train_tf = T2.Compose([
+#     T2.ToImage(),                                                          # PIL -> tensor uint8
+#     T2.RandomResizedCrop(224, scale=(0.6, 1.0), ratio=(3/4, 4/3),
+#                          interpolation=T2.InterpolationMode.BICUBIC),      # 2. crop moderado
+#     T2.RandomHorizontalFlip(p=0.5),                                        # 1. flip horizontal
+#     T2.RandomRotation(10),                                                 # 5. rotação pequena
+#     T2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.0), # 3. fotométrica leve
+#     T2.RandomApply([T2.RandomResize(96, 161), T2.Resize((224, 224))], p=0.3),  # 4a. resolução 96-160 px
+#     T2.RandomApply([T2.JPEG(quality=(60, 95))], p=0.3),                    # 4b. recompressão JPEG q 60-95
+#     T2.ToDtype(torch.float32, scale=True),
+#     T2.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),            # (d) normalização ImageNet
+# ])
 # ```
 
 # %%
@@ -669,7 +830,7 @@ AUGS = {"original": T.Lambda(lambda x: x),
         "crop agressivo": T.RandomResizedCrop(224, scale=(0.08, 0.15))}
 demo_classes = [c for c in ["flowers", "bike", "cats", "horses"] if c in CLASS_NAMES]
 torch.manual_seed(SEED)
-fig, axes = plt.subplots(len(demo_classes), len(AUGS), figsize=(2.2 * len(AUGS), 2.4 * len(demo_classes)), squeeze=False)
+fig, axes = plt.subplots(len(demo_classes), len(AUGS), figsize=(1.7 * len(AUGS), 1.9 * len(demo_classes)), squeeze=False, dpi=80)
 for r, cls in enumerate(demo_classes):
     img = base_tf(load_rgb(df[df.cls == cls].path.iloc[0]))
     for c, (name, aug) in enumerate(AUGS.items()):
@@ -681,7 +842,7 @@ for r, cls in enumerate(demo_classes):
             ax.set_ylabel(cls, fontsize=11, fontweight="bold")
 plt.suptitle("Augmentations candidatas (só ilustração; não usadas no treino)", fontweight="bold")
 plt.tight_layout()
-savefig("augmentation_examples")
+savefig("augmentation_examples", dpi=100)
 plt.show()
 
 # %% [markdown]
@@ -692,7 +853,7 @@ plt.show()
 # | # | Estratégia | Parâmetros | Por que ajuda aqui | Classes em que pode prejudicar |
 # |---|---|---|---|---|
 # | 1 | Flip horizontal | p = 0,5 | Dobra as poses de animais, pessoas e veículos; nenhuma classe depende de esquerda/direita | Nenhuma |
-# | 2 | Crop moderado | `RandomResizedCrop(224, scale=(0.6, 1.0), ratio=(3/4, 4/3))` | Objetos em escalas muito diferentes; o erro cats → dogs veio de um crop central que tirou o rosto | Com `scale` < ~0,5: bike/cars (recorte sem o objeto) e cats/dogs/horses (recorte sem a cabeça) |
+# | 2 | Crop moderado | `RandomResizedCrop(224, scale=(0.6, 1.0), ratio=(3/4, 4/3))` | Objetos em escalas muito diferentes; o erro cats → dogs provavelmente veio de um crop central que tirou o rosto | Com `scale` < ~0,5: bike/cars (recorte sem o objeto) e cats/dogs/horses (recorte sem a cabeça) |
 # | 3 | Fotométrica leve | `ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0)` | Exposição varia muito (o gato do erro está sobre fundo estourado) | flowers se houver matiz/saturação fortes; cats/dogs/horses (cor da pelagem) com jitter forte |
 # | 4 | Resolução e compressão | redução para 96–160 px + JPEG q 60–95, p ≈ 0,3, em todas as classes | Iguala as assinaturas de aquisição que estão amarradas às classes (flowers 128 px PNG; bike/cars BMP) | Nenhuma nessa intensidade |
 # | 5 | Rotação pequena | ±10° | Fotos levemente inclinadas | Nenhuma nessa faixa |
@@ -722,7 +883,7 @@ plt.show()
 #
 # - **O teto já foi atingido com o head.** Só treinando 8.967 parâmetros (0,22% do modelo), o teste chegou a **99,25%** (IC 95% [97,3%; 99,8%]) e a validação a 99,62%. O fine-tuning pode ganhar no máximo as **2 imagens** erradas (+0,75 p.p.), um ganho dentro do intervalo de confiança e que o teste não tem resolução para confirmar. Pagar 7,9× a VRAM e 4,1× o tempo por passo por um ganho que não dá para medir não se justifica.
 # - **O FT poderia piorar.** Com ~3.200 parâmetros por imagem de treino, o FT completo tem capacidade para decorar as 1.234 imagens e, pior, para **adaptar o backbone às assinaturas de aquisição** discutidas na seção 7 (resolução de flowers, cenas de rua de bike/cars). O backbone congelado limita o modelo às features genéricas do ImageNet, e isso reduz (não elimina) o espaço para atalhos. A Aula 6 (slide 12) resume o mesmo ponto para o CLIP: linear probe tem "zero esquecimento"; FT completo arrisca a robustez fora da distribuição.
-# - **Os dois erros não pedem FT.** Um veio do center crop (rosto do gato cortado) e o outro de uma bicicleta pequena numa cena de rua. Os dois se resolvem melhor no pré-processamento (sem crop ou TTA com vários recortes) e no dado (recorte moderado na augmentation) do que ajustando 4 M de pesos.
+# - **Os dois erros não pedem FT.** Um provavelmente veio do center crop (rosto do gato cortado, a confirmar na figura de erros) e o outro de uma bicicleta pequena numa cena de rua. Os dois se resolvem melhor no pré-processamento (sem crop ou TTA com vários recortes) e no dado (recorte moderado na augmentation) do que ajustando 4 M de pesos.
 # - **Quando eu faria FT aqui:** se o teste externo ou o teste contrafactual de aquisição (seção 7) mostrasse queda forte, a ordem seria: (1) augmentation de resolução/compressão com o backbone ainda congelado; (2) FT parcial de `features[7:]` com LR diferencial (1e-5 no backbone, 1e-3 no head, como no desafio da Aula 1, nb[21]), partindo do head já treinado; (3) avaliação no teste externo, não no teste atual, que está saturado.
 # - **Contraste com a A1.** No NEU Surface Defects (texturas de aço em cinza, fora do ImageNet), o FE deve ficar bem abaixo do que se viu aqui. É lá que o eixo "domínio" da tabela acima deve pesar.
 
@@ -748,10 +909,22 @@ metrics = {
     "epochs_run": int(len(hist_df)),
     "best_val_loss": round(float(best_val_loss), 4),
     "best_val_acc": round(float(hist_df.loc[hist_df.epoch == best_epoch, "val_acc"].iloc[0]), 2),
+    "near_duplicates": {"method": "imagehash.phash 64 bits", "hamming_threshold": PHASH_THRESHOLD,
+                        "n_pairs": int(len(near_dup_df)), "n_pairs_diff_class": int((~near_dup_df.same_class).sum()),
+                        "pairs_by_partition": near_dup_counts, "n_test_with_train_near_dup": len(test_leaky_paths)},
+    "test_clean": {"n": int(clean.sum()), "accuracy": round(float(test_acc_clean), 2), "macro_f1": round(float(macro_f1_clean), 4)},
+    "alpha": alpha_summary,
+    "eda": eda_summary,
     "train_time_s": round(train_time_s, 1),
     "peak_vram_train_mb": round(peak_vram_train_mb) if peak_vram_train_mb else None,
+    "peak_vram_train_reserved_mb": round(peak_vram_train_reserved_mb) if peak_vram_train_reserved_mb else None,
     "benchmark_vram": bench_rows,
+    "ram_after_train": ram_after_train,
+    **ram_stats(),
+    "pip_time_s": round(PIP_TIME_S, 1),
+    "download_time_s": round(DOWNLOAD_TIME_S, 1),
     "notebook_time_s": round(time.time() - NOTEBOOK_T0, 1),
+    "notebook_time_scope": "da 1a célula de código (pip) até esta célula; inclui pip, montagem do Drive e download",
     "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
 }
 (OUT_DIR / "A3_metrics.json").write_text(json.dumps(metrics, indent=2, ensure_ascii=False))
