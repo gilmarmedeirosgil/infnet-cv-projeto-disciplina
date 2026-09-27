@@ -1,0 +1,230 @@
+{
+  "activity": "A1",
+  "dataset": "kaustubhdikshit/neu-surface-defect-database (NEU-DET train+validation reunidos)",
+  "n_images_clean": 1799,
+  "n_corrupted": 0,
+  "n_duplicates_removed": 1,
+  "split": {
+    "train": 1259,
+    "val": 270,
+    "test": 270
+  },
+  "classes": [
+    "crazing",
+    "inclusion",
+    "patches",
+    "pitted_surface",
+    "rolled-in_scale",
+    "scratches"
+  ],
+  "models": {
+    "vit_scratch": {
+      "label": "ViT do zero",
+      "pretrain": "nenhum",
+      "input": "224px, 1 canal, 197 tokens",
+      "total_params": 2758086,
+      "trainable_params": 2758086,
+      "test_accuracy": 98.52,
+      "test_macro_f1": 0.9851,
+      "test_per_class_f1": {
+        "crazing": 1.0,
+        "inclusion": 0.9663,
+        "patches": 1.0,
+        "pitted_surface": 0.9556,
+        "rolled-in_scale": 0.989,
+        "scratches": 1.0
+      },
+      "test_accuracy_patch_shuffled": 98.52,
+      "best_epoch": 115,
+      "epochs": 150,
+      "best_val_macro_f1": 0.9926,
+      "train_time_s": 282.6,
+      "s_per_epoch": 1.88,
+      "peak_vram_train_mb": 1389,
+      "inference_ms_per_img": 0.425,
+      "train_config": {
+        "epochs": 150,
+        "warmup_epochs": 10,
+        "batch_size": 64,
+        "lr": 0.0005,
+        "head_lr_mult": 1.0,
+        "weight_decay": 0.05,
+        "ckpt_every": 25
+      }
+    },
+    "vit_pretrained": {
+      "label": "ViT-B/16 pré-treinado",
+      "pretrain": "ImageNet-21k (supervisionado)",
+      "input": "224px, 3 canais, 197 tokens",
+      "total_params": 85803270,
+      "trainable_params": 85803270,
+      "test_accuracy": 100.0,
+      "test_macro_f1": 1.0,
+      "test_per_class_f1": {
+        "crazing": 1.0,
+        "inclusion": 1.0,
+        "patches": 1.0,
+        "pitted_surface": 1.0,
+        "rolled-in_scale": 1.0,
+        "scratches": 1.0
+      },
+      "test_accuracy_patch_shuffled": 98.89,
+      "best_epoch": 3,
+      "epochs": 12,
+      "best_val_macro_f1": 1.0,
+      "train_time_s": 212.2,
+      "s_per_epoch": 17.69,
+      "peak_vram_train_mb": 4834,
+      "inference_ms_per_img": 4.32,
+      "train_config": {
+        "epochs": 12,
+        "warmup_epochs": 1,
+        "batch_size": 32,
+        "lr": 5e-05,
+        "head_lr_mult": 10.0,
+        "weight_decay": 0.05,
+        "ckpt_every": 0
+      }
+    },
+    "resnet18": {
+      "label": "ResNet-18 pré-treinada",
+      "pretrain": "ImageNet-1k (supervisionado)",
+      "input": "224px, 3 canais",
+      "total_params": 11179590,
+      "trainable_params": 11179590,
+      "test_accuracy": 100.0,
+      "test_macro_f1": 1.0,
+      "test_per_class_f1": {
+        "crazing": 1.0,
+        "inclusion": 1.0,
+        "patches": 1.0,
+        "pitted_surface": 1.0,
+        "rolled-in_scale": 1.0,
+        "scratches": 1.0
+      },
+      "test_accuracy_patch_shuffled": 44.07,
+      "best_epoch": 6,
+      "epochs": 12,
+      "best_val_macro_f1": 1.0,
+      "train_time_s": 28.5,
+      "s_per_epoch": 2.37,
+      "peak_vram_train_mb": 733,
+      "inference_ms_per_img": 0.492,
+      "train_config": {
+        "epochs": 12,
+        "warmup_epochs": 1,
+        "batch_size": 32,
+        "lr": 0.0001,
+        "head_lr_mult": 10.0,
+        "weight_decay": 0.05,
+        "ckpt_every": 0
+      }
+    }
+  },
+  "attention": {
+    "vit_scratch": {
+      "head_shown": 1,
+      "mean_attention_distance_px_per_layer": [
+        115.33999633789062,
+        121.94000244140625,
+        116.80000305175781,
+        120.76000213623047,
+        116.91999816894531,
+        116.83999633789062
+      ],
+      "cls_entropy_last_layer_per_head": [
+        3.622999906539917,
+        2.8420000076293945,
+        4.4039998054504395
+      ]
+    },
+    "vit_pretrained": {
+      "head_shown": 11,
+      "mean_attention_distance_px_per_layer": [
+        77.87999725341797,
+        63.83000183105469,
+        70.9000015258789,
+        85.4000015258789,
+        95.91000366210938,
+        108.6500015258789,
+        111.94999694824219,
+        112.58999633789062,
+        112.5999984741211,
+        113.30000305175781,
+        112.27999877929688,
+        114.76000213623047
+      ],
+      "cls_entropy_last_layer_per_head": [
+        4.559999942779541,
+        4.390999794006348,
+        4.447999954223633,
+        4.466000080108643,
+        4.734000205993652,
+        4.093999862670898,
+        4.688000202178955,
+        4.373000144958496,
+        4.285999774932861,
+        4.6529998779296875,
+        4.251999855041504,
+        4.000999927520752
+      ]
+    }
+  },
+  "pe_demo": {
+    "without_pe": {
+      "tokens_equivariant": true,
+      "cls_invariant": true,
+      "max_abs_diff_tokens": 1.7763568394002505e-15,
+      "max_abs_diff_cls": 3.83026943495679e-15
+    },
+    "with_pe": {
+      "tokens_equivariant": false,
+      "cls_invariant": false,
+      "max_abs_diff_tokens": 0.1891579247006357,
+      "max_abs_diff_cls": 0.0015868939520156111
+    }
+  },
+  "config": {
+    "scratch_vit": {
+      "img_size": 224,
+      "patch_size": 16,
+      "in_chans": 1,
+      "embed_dim": 192,
+      "depth": 6,
+      "n_heads": 3,
+      "mlp_ratio": 4.0,
+      "dropout": 0.1,
+      "attn_dropout": 0.0
+    },
+    "pretrained_id": "google/vit-base-patch16-224-in21k",
+    "extras": false,
+    "label_smoothing": 0.1,
+    "grad_clip": 1.0,
+    "min_lr_ratio": 0.01,
+    "aug": "D4 (rot90 + flip) + brilho/contraste ±10%",
+    "amp_fp16": true,
+    "seed": 42
+  },
+  "figures": [
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_samples_grid.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_intensity_stats.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_augmentation_examples.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_pe_permutation_demo.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_training_curves.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_confusion_matrices.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_per_class_f1.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_attention_single_example.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_attention_maps_vit_scratch.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_attention_maps_vit_pretrained.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_attention_heads_vit_scratch.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_attention_heads_vit_pretrained.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_attention_distance.png",
+    "/content/drive/MyDrive/infnet_cv_projeto/outputs/A1/A1_patch_shuffle_robustness.png"
+  ],
+  "notebook_time_s": 643.5,
+  "gpu": "Tesla T4",
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "transformers": "5.16.1"
+  }
+}
