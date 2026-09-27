@@ -1,0 +1,18 @@
+.DS_Store
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+
+# dados, pesos e artefatos pesados
+data/
+datasets/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.zip
+
+# credenciais
+kaggle.json
+.env
