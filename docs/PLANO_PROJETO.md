@@ -320,7 +320,7 @@ Pelo menos 4 problemas, cada um com **impacto operacional** e **como abordaria**
 | 0 Setup | 27/09/2026 | ✅ Gate 0 aprovado | 4 datasets OK (ver decisoes.md); base de conhecimento 657 linhas | D8–D10: 20 recomendações aceitas; corpus A2 = 300 ads + corpus usuários; ADS-16 no PDF com citação |
 | 1 A3 | 27/09/2026 | ✅ Gate 1 | test 99,25% (IC Wilson 97,3–99,8), macro-F1 0,993; teste limpo (pHash) 99,24%; 5,7 min na T4 | Rubrica 1.1–1.5 PASSA (revisor); v2 com pHash, alfa medido, RAM/VRAM medidas |
 | 2 A1 | 28/09/2026 | Executado, aguardando Gate 2 | ViT do zero 98,52% (266/270), ViT-B/16 e ResNet-18 100% (270/270); McNemar p=0,125 (compatíveis); ViT do zero converge na época 115 vs 3; 164s na T4 (reexecução com checkpoints) | — |
-| 3 A4.1 | | ☐ | | |
+| 3 A4.1 | 28/09/2026 | Executado, aguardando Gate 3 | Baseline 70,5% acc / 23,5% recall COVID; corrigido 87,5% acc / 67,5% recall (IC [60,7;73,6]), meta 0,90 não atingida; GAN Run B mais estável que Run A (KID 0,264 vs 0,296); *sweep* 3 seeds: sintéticos **pioram** recall médio (−5,8 a −6,0 p.p.), 3 de 6 combos significativos; controle real×sintético AUC 1,00; 809,5s na T4 | — |
 | 4 A2 | | ☐ | | |
 | 5 A4.2 | | ☐ | | |
 | 6 Entrega | | ☐ | | |
