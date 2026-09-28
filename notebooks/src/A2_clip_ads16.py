@@ -239,16 +239,33 @@ print("logit_scale.exp():", clip_model.logit_scale.exp().item())
 # Embeddings L2-normalizados de todo o corpus, em lotes, cacheados no Drive (`OUT_DIR/A2_image_embeds.npy`) para não recomputar em reexecuções.
 
 # %%
+def _extract_embed(out):
+    """Baseado em Aula-6 nb[15], estendido: versões recentes do transformers (>=4.5x) fazem
+    get_image_features/get_text_features devolverem um BaseModelOutputWithPooling em vez do
+    tensor projetado direto; o embedding projetado (512-d) vem em .pooler_output nesse caso
+    (checado: a mesma dimensão do embedding de texto, e cosseno ~1 entre a mesma imagem
+    processada duas vezes). Versões mais antigas devolvem o tensor puro, ou um objeto com
+    .image_embeds/.text_embeds — cobertas pelos outros dois ramos."""
+    if torch.is_tensor(out):
+        return out
+    if hasattr(out, "image_embeds"):
+        return out.image_embeds
+    if hasattr(out, "text_embeds"):
+        return out.text_embeds
+    if hasattr(out, "pooler_output"):
+        return out.pooler_output
+    raise TypeError(f"Não sei extrair o embedding de {type(out)}: {dir(out)}")
+
 @torch.no_grad()
 def get_image_features_clean(pil_images, batch_size=64):
-    """Baseado em Aula-6 nb[15]: L2-normaliza; lida com versões do transformers em que
-    get_image_features devolve o tensor direto ou um objeto com .image_embeds."""
+    """L2-normaliza; lida com as várias formas de retorno do get_image_features entre versões
+    do transformers (ver _extract_embed)."""
     feats = []
     for i in range(0, len(pil_images), batch_size):
         batch = pil_images[i:i + batch_size]
         inputs = clip_processor(images=batch, return_tensors="pt").to(device)
         out = clip_model.get_image_features(**inputs)
-        emb = out.image_embeds if hasattr(out, "image_embeds") else out
+        emb = _extract_embed(out)
         feats.append(F.normalize(emb, dim=-1).cpu())
     return torch.cat(feats, dim=0)
 
@@ -259,7 +276,7 @@ def get_text_features_clean(texts, batch_size=64):
         batch = texts[i:i + batch_size]
         inputs = clip_processor(text=batch, padding=True, return_tensors="pt").to(device)
         out = clip_model.get_text_features(**inputs)
-        emb = out.text_embeds if hasattr(out, "text_embeds") else out
+        emb = _extract_embed(out)
         feats.append(F.normalize(emb, dim=-1).cpu())
     return torch.cat(feats, dim=0)
 
@@ -478,11 +495,10 @@ print("attention_mask:", bert_ids["attention_mask"][0].tolist())
 # tokens de padding depois do EOT não deveriam mudar o resultado (mesmo com a attention_mask aplicada).
 clip_padded = clip_tok([query_txt], padding="max_length", max_length=77, truncation=True, return_tensors="pt")
 with torch.no_grad():
-    e_dynamic = F.normalize(clip_model.get_text_features(**clip_processor(text=[query_txt], padding=True,
-                                                                            return_tensors="pt").to(device)),
-                             dim=-1)
-    e_padded = F.normalize(clip_model.get_text_features(**{k: v.to(device) for k, v in clip_padded.items()}),
-                            dim=-1)
+    e_dynamic = F.normalize(_extract_embed(clip_model.get_text_features(**clip_processor(
+        text=[query_txt], padding=True, return_tensors="pt").to(device))), dim=-1)
+    e_padded = F.normalize(_extract_embed(clip_model.get_text_features(
+        **{k: v.to(device) for k, v in clip_padded.items()})), dim=-1)
 diff_clip = (e_dynamic - e_padded).abs().max().item()
 print(f"CLIP: diferença máx. entre padding dinâmico e padding='max_length' (77): {diff_clip:.2e}  "
       f"(esperado ~1e-6: o EOT e a máscara já resolvem o padding extra)")
