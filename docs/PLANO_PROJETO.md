@@ -319,7 +319,7 @@ Pelo menos 4 problemas, cada um com **impacto operacional** e **como abordaria**
 | Time de agentes | 27/09/2026 | ✅ definido | `py2ipynb --selftest` OK | Supervisor, 5 agentes custom, base de conhecimento, Opus/Sonnet, paralelismo sem GPU, Plus com T4, `gilmar_medeiros`, sem metas de data |
 | 0 Setup | 27/09/2026 | ✅ Gate 0 aprovado | 4 datasets OK (ver decisoes.md); base de conhecimento 657 linhas | D8–D10: 20 recomendações aceitas; corpus A2 = 300 ads + corpus usuários; ADS-16 no PDF com citação |
 | 1 A3 | 27/09/2026 | ✅ Gate 1 | test 99,25% (IC Wilson 97,3–99,8), macro-F1 0,993; teste limpo (pHash) 99,24%; 5,7 min na T4 | Rubrica 1.1–1.5 PASSA (revisor); v2 com pHash, alfa medido, RAM/VRAM medidas |
-| 2 A1 | | ☐ | | |
+| 2 A1 | 28/09/2026 | Executado, aguardando Gate 2 | ViT do zero 98,52% (266/270), ViT-B/16 e ResNet-18 100% (270/270); McNemar p=0,125 (compatíveis); ViT do zero converge na época 115 vs 3; 164s na T4 (reexecução com checkpoints) | — |
 | 3 A4.1 | | ☐ | | |
 | 4 A2 | | ☐ | | |
 | 5 A4.2 | | ☐ | | |
