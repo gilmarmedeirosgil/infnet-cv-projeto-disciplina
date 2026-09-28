@@ -119,10 +119,14 @@ print("ADS-16 em:", DATASET_PATH)
 # Os CSVs `INF` (dados pessoais, parcialmente ocultos) **não são usados**, conforme decisão D10.
 
 # %%
-ADS_ROOT = next(DATASET_PATH.rglob("Ads/Ads"))
-CORPUS_ROOT = next(DATASET_PATH.rglob("Corpus/Corpus"))
-print("Ads:", ADS_ROOT)
-print("Corpus (usuários):", CORPUS_ROOT)
+# O ADS-16 vem em duas partes (ADS16_Benchmark_part1/part2), cada uma com metade das categorias
+# de anúncios (1-10 e 11-20) e metade dos usuários (U0001-U0060 e U0061-U0120) — sem sobreposição.
+# Um único `next(...)` pegaria só a 1ª parte (10 categorias, 60 usuários); é preciso juntar as duas.
+ADS_ROOTS = sorted(DATASET_PATH.rglob("Ads/Ads"))
+CORPUS_ROOTS = sorted(DATASET_PATH.rglob("Corpus/Corpus"))
+assert len(ADS_ROOTS) >= 1 and len(CORPUS_ROOTS) >= 1, "estrutura do ADS-16 não encontrada"
+print(f"Ads: {len(ADS_ROOTS)} parte(s) -> {ADS_ROOTS}")
+print(f"Corpus (usuários): {len(CORPUS_ROOTS)} parte(s) -> {CORPUS_ROOTS}")
 
 # Cat0..Cat19 -> nome (extraído de U*-RT.csv na Etapa 0, ver docs/decisoes.md)
 CATEGORY_NAMES = ["Clothing & Shoes", "Automotive", "Baby Products", "Health & Beauty", "Media (BMVD)",
@@ -133,34 +137,38 @@ CATEGORY_NAMES = ["Clothing & Shoes", "Automotive", "Baby Products", "Health & B
 assert len(CATEGORY_NAMES) == 20
 
 ads_records = []
-for cat_dir in sorted(ADS_ROOT.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else 99):
-    if not cat_dir.is_dir():
-        continue
-    cat_idx = int(cat_dir.name) - 1  # pastas 1..20 -> Cat0..Cat19
-    for img_path in sorted(cat_dir.iterdir()):
-        if img_path.suffix.lower() in (".png", ".jpg", ".jpeg"):
-            ads_records.append({"path": str(img_path), "source": "ads", "category": CATEGORY_NAMES[cat_idx],
-                                 "user": None, "pref": None})
+for ads_root in ADS_ROOTS:
+    for cat_dir in sorted(ads_root.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else 99):
+        if not cat_dir.is_dir():
+            continue
+        cat_idx = int(cat_dir.name) - 1  # pastas 1..20 -> Cat0..Cat19
+        for img_path in sorted(cat_dir.iterdir()):
+            if img_path.suffix.lower() in (".png", ".jpg", ".jpeg"):
+                ads_records.append({"path": str(img_path), "source": "ads", "category": CATEGORY_NAMES[cat_idx],
+                                     "user": None, "pref": None})
 ads_df = pd.DataFrame(ads_records)
-print(f"Anúncios: {len(ads_df)} imagens em {ads_df.category.nunique()} categorias")
+print(f"Anúncios: {len(ads_df)} imagens em {ads_df.category.nunique()} categorias (das 20 esperadas)")
 print(ads_df.category.value_counts().to_string())
+assert ads_df.category.nunique() == 20, "faltou juntar alguma parte do ADS-16 (categorias de anúncio)"
 
 # %%
 user_records = []
-for user_dir in sorted(CORPUS_ROOT.iterdir()):
-    if not user_dir.is_dir() or not user_dir.name.startswith("U"):
-        continue
-    for pref in ("POS", "NEG"):
-        img_dir = user_dir / f"{user_dir.name}-IM-{pref}"
-        if not img_dir.is_dir():
+for corpus_root in CORPUS_ROOTS:
+    for user_dir in sorted(corpus_root.iterdir()):
+        if not user_dir.is_dir() or not user_dir.name.startswith("U"):
             continue
-        for img_path in sorted(img_dir.iterdir()):
-            if img_path.suffix.lower() in (".jpg", ".jpeg", ".png") and "_th_" not in img_path.name:
-                user_records.append({"path": str(img_path), "source": "user", "category": None,
-                                      "user": user_dir.name, "pref": pref})
+        for pref in ("POS", "NEG"):
+            img_dir = user_dir / f"{user_dir.name}-IM-{pref}"
+            if not img_dir.is_dir():
+                continue
+            for img_path in sorted(img_dir.iterdir()):
+                if img_path.suffix.lower() in (".jpg", ".jpeg", ".png") and "_th_" not in img_path.name:
+                    user_records.append({"path": str(img_path), "source": "user", "category": None,
+                                          "user": user_dir.name, "pref": pref})
 user_df_all = pd.DataFrame(user_records)
-print(f"Imagens de usuários (sem miniaturas): {len(user_df_all)}, de {user_df_all.user.nunique()} usuários")
+print(f"Imagens de usuários (sem miniaturas): {len(user_df_all)}, de {user_df_all.user.nunique()} usuários (dos 120 esperados)")
 print(user_df_all.pref.value_counts().to_string())
+assert user_df_all.user.nunique() >= 100, "faltou juntar alguma parte do ADS-16 (usuários)"
 
 # %%
 # Amostra estratificada por (usuário, pref), para completar o corpus a ~600-700 imagens no total.
