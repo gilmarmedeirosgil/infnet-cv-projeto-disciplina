@@ -6,6 +6,8 @@
 #
 # **Objetivo.** Classificar os 6 tipos de defeito superficial de chapas de aço laminado a quente do NEU Surface Defect Database com três abordagens, **no mesmo split e no mesmo loop de treino**: (1) um **ViT implementado do zero** (atenção, multi-head, bloco encoder, patch embedding, CLS e positional embedding próprios, com testes); (2) um **ViT-B/16 pré-treinado no ImageNet-21k** com o head trocado (fine-tuning); (3) uma **CNN ResNet-18** pré-treinada como baseline. Depois, comparar desempenho e custo, visualizar a atenção (1 head e *attention rollout*) e discutir a escolha de arquitetura.
 #
+# **Também roda localmente em GPU Apple Silicon (MPS)** — o notebook detecta CUDA > MPS > CPU automaticamente (`device`, seção 1) e desliga a AMP fp16 fora da CUDA (MPS/CPU rodam em fp32); sem GPU dedicada, a VRAM de pico dos pré-treinados não é medida (MPS não expõe `max_memory_allocated`). Os números abaixo são da execução de referência no Colab; uma execução local troca só velocidade, não resultado.
+#
 # **Requisitos de execução (Colab, runtime T4)** — valores medidos no "Executar tudo" de 27/09/2026 (Tesla T4, 14,56 GB; PyTorch 2.11, transformers 5.16), exceto onde indicado:
 #
 # | Recurso | Medido | Observação |
@@ -57,10 +59,19 @@ if torch.cuda.is_available():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"PyTorch {torch.__version__} | torchvision {torchvision.__version__} | transformers {transformers.__version__} | device: {device}")
+# CUDA (Colab T4) > MPS (Apple Silicon, execução local) > CPU. O restante do notebook só olha
+# para device.type ("cuda"/"mps"/"cpu"), então roda sem alterações nos dois ambientes.
 if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.backends.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
+print(f"PyTorch {torch.__version__} | torchvision {torchvision.__version__} | transformers {transformers.__version__} | device: {device}")
+if device.type == "cuda":
     print(f"GPU: {torch.cuda.get_device_name(0)} | VRAM total: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+elif device.type == "mps":
+    print("GPU: Apple Silicon (MPS) — memória unificada com a RAM do sistema; sem medição nativa de pico de VRAM (ver seção de requisitos).")
 else:
     print("ATENÇÃO: sem GPU. No Colab: Ambiente de execução > Alterar tipo > T4 GPU.")
 
@@ -79,7 +90,7 @@ warnings.filterwarnings("ignore", message=".*lr_scheduler.step.*")
 NUM_CLASSES = 6
 FORCE_RETRAIN = False     # True: ignora checkpoints do Drive e treina de novo
 RUN_EXTRAS = False        # True: treina também o DeiT-small (extra, ~5 min na T4)
-USE_AMP = torch.cuda.is_available()
+USE_AMP = device.type == "cuda"  # AMP fp16 só na T4; MPS/CPU rodam em fp32 (autocast fp16 no MPS é instável em algumas versões do PyTorch)
 
 SCRATCH_CFG = dict(img_size=224, patch_size=16, in_chans=1, embed_dim=192, depth=6, n_heads=3,
                    mlp_ratio=4.0, dropout=0.1, attn_dropout=0.0)
@@ -718,8 +729,10 @@ def lr_lambda_factory(total_steps, warmup_steps):
     return f
 
 def sync():
-    if torch.cuda.is_available():
+    if device.type == "cuda":
         torch.cuda.synchronize()
+    elif device.type == "mps":
+        torch.mps.synchronize()
 
 @torch.no_grad()
 def evaluate(model, prep, idx, batch_size=128, transform=None):
@@ -747,10 +760,14 @@ def train_model(name, build_fn, prep, cfg, head_prefix):
     """Treina (ou carrega do Drive) um modelo. Retorna (modelo com os melhores pesos, resultado)."""
     final_path, last_path = CKPT_DIR / f"A1_{name}_final.pt", CKPT_DIR / f"A1_{name}_last.pt"
     gc.collect()
-    if torch.cuda.is_available():
+    if device.type == "cuda":
         torch.cuda.empty_cache(); sync()
         base_mem = torch.cuda.memory_allocated()
         torch.cuda.reset_peak_memory_stats()
+    elif device.type == "mps":
+        # MPS não expõe reset_peak_memory_stats/max_memory_allocated como o CUDA: sem medição de
+        # pico por modelo aqui (fica None no resultado); só liberamos a memória entre treinos.
+        torch.mps.empty_cache(); sync()
     model = build_fn().to(device)
     if final_path.exists() and not FORCE_RETRAIN:
         ck = torch.load(final_path, map_location="cpu", weights_only=False)
@@ -808,12 +825,12 @@ def train_model(name, build_fn, prep, cfg, head_prefix):
         print(f"[{name}] ep {epoch:3d}/{cfg['epochs']} | train loss {tr_loss / n_train:.4f} acc {100 * tr_correct / n_train:6.2f}% | "
               f"val loss {va['loss']:.4f} acc {va['acc']:6.2f}% F1 {va['f1']:.4f} | {dt_ep:5.1f}s {'*' if improved else ''}")
         if cfg["ckpt_every"] and epoch % cfg["ckpt_every"] == 0 and epoch < cfg["epochs"]:
-            peak_now = (torch.cuda.max_memory_allocated() - base_mem) / 2**20 if torch.cuda.is_available() else 0.0
+            peak_now = (torch.cuda.max_memory_allocated() - base_mem) / 2**20 if device.type == "cuda" else 0.0
             torch.save({"model": model.state_dict(), "optimizer": optimizer.state_dict(), "scheduler": scheduler.state_dict(),
                         "scaler": scaler.state_dict(), "history": history, "best": best, "elapsed": elapsed,
                         "peak_vram_mb": max(peak_prev, peak_now), "epoch": epoch}, last_path)
 
-    peak = (torch.cuda.max_memory_allocated() - base_mem) / 2**20 if torch.cuda.is_available() else None
+    peak = (torch.cuda.max_memory_allocated() - base_mem) / 2**20 if device.type == "cuda" else None
     model.load_state_dict(best["state"])
     result = {"history": history, "best_epoch": best["epoch"], "best_val_f1": best["f1"], "best_val_loss": best["loss"],
               "train_time_s": elapsed, "epochs": cfg["epochs"], "peak_vram_mb": None if peak is None else max(peak, peak_prev),
@@ -1390,7 +1407,7 @@ metrics = {
                "aug": f"D4 (rot90 + flip) + brilho/contraste ±{AUG_JITTER:.0%}", "amp_fp16": USE_AMP, "seed": SEED},
     "figures": FIGURES,
     "notebook_time_s": round(time.time() - NOTEBOOK_T0, 1),
-    "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
+    "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else ("mps (Apple Silicon)" if device.type == "mps" else "cpu"),
     "versions": {"torch": torch.__version__, "transformers": transformers.__version__},
 }
 (OUT_DIR / "A1_metrics.json").write_text(json.dumps(metrics, indent=2, ensure_ascii=False))
