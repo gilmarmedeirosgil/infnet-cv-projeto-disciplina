@@ -13,6 +13,7 @@ Este relatório reúne as cinco atividades do projeto da disciplina: um Vision T
 **Reprodutibilidade e gates.** Cada atividade passou por um processo de duas etapas antes de entrar neste relatório: (1) execução no Colab com T4, conferida célula a célula contra o JSON final de métricas; (2) uma revisão adversarial (agente `revisor-rubrica`, rodando com acesso só de leitura) contra os itens da rubrica e as convenções de reprodutibilidade do projeto, seguida da aprovação de Gilmar num gate por atividade. Essa segunda revisão encontrou e corrigiu problemas reais — não só de redação: um bug de cache no A2 que produzia uma conclusão inteiramente errada ("CLIP tem desempenho fraco neste corpus"), contagens infladas na mesma atividade, faixas de referência fabricadas no A4.1 e uma citação com autoria trocada. O histórico completo de decisões, bugs encontrados e correções está em `docs/decisoes.md`; o plano e o checklist da rubrica, em `docs/PLANO_PROJETO.md`.
 
 
+
 ## A1 — Vision Transformer: implementação do zero e comparação com transfer learning
 
 ### Problema
@@ -370,7 +371,7 @@ Descartei o *flip* vertical e as rotações grandes (todas as classes exceto flo
 
 ### Cenário e objetivo
 
-Um grupo anterior treinou uma ResNet-18 do zero para triar radiografias de tórax em Normal / Pneumonia / COVID-19, com 1.200 imagens na proporção 7:2:1 (840/240/120), split 80/20, SGD com LR fixo 0,01 e 15 épocas, sem augmentation, e relatou só a accuracy (93% no treino, 61% na validação). Este notebook (1) diagnostica os problemas metodológicos desse projeto e o impacto clínico de cada um; (2) reproduz o baseline e constrói um pipeline corrigido; (3) treina uma **GAN condicional (cGAN)** para gerar radiografias COVID sintéticas, documentando a instabilidade do treino adversarial e sua mitigação; (4) mede, com várias seeds, se os sintéticos melhoram o **recall de COVID** num teste 100% real; (5) propõe um plano de melhoria com critério de adoção clínica. Notebook: `notebooks/A4_estudo_caso_raio_x.ipynb`, executado com "Executar tudo" numa T4 do Colab em **809,5 s (~13,5 min)**; VRAM de pico 3.274 MB.
+Um grupo anterior treinou uma ResNet-18 do zero para triar radiografias de tórax em Normal / Pneumonia / COVID-19, com 1.200 imagens na proporção 7:2:1 (840/240/120), split 80/20, SGD com LR fixo 0,01 e 15 épocas, sem augmentation, e relatou só a accuracy (93% no treino, 61% na validação). Este notebook (1) diagnostica os problemas metodológicos desse projeto e o impacto clínico de cada um; (2) reproduz o baseline e constrói um pipeline corrigido; (3) treina uma **GAN condicional (cGAN)** para gerar radiografias COVID sintéticas, documentando a instabilidade do treino adversarial e sua mitigação; (4) mede, com várias seeds, se os sintéticos melhoram o **recall de COVID** num teste 100% real; (5) propõe um plano de melhoria com critério de adoção clínica; (6) verifica, isolando a variável, se a resolução de 64 px era mesmo o teto do recall — era. Notebook: `notebooks/A4_estudo_caso_raio_x.ipynb`, executado com "Executar tudo" numa T4 do Colab em **809,5 s (~13,5 min)** na execução completa; VRAM de pico 3.274 MB.
 
 ### Diagnóstico do projeto anterior
 
@@ -471,17 +472,36 @@ Precisão e especificidade de COVID **sobem** (não descem) com sintéticos (98,
 
 **Conclusão honesta.** Neste experimento (3 classes, 64 px, pipeline já corrigido, 3 seeds), a GAN **não ajudou** — há indícios reais, embora não conclusivos na média de 3 seeds, de que **atrapalhou** o recall de COVID. Contrasta com a Aula 7 (+13 p.p., 1 seed): a diferença mais provável é o número de seeds, não o pipeline — um único treino pode acertar por sorte de inicialização/split.
 
+### Verificação: resolução nativa (224 px) no pipeline real
+
+A seção anterior apontava a resolução de 64 px como o teto mais provável do recall (perda de opacidades finas em vidro fosco). Testado isoladamente: **mesmas imagens, mesmo split, mesma arquitetura e hiperparâmetros do pipeline corrigido, única mudança é a resolução de armazenamento (64 px → 224 px nativo, sem upsample fake)**, nas mesmas 3 seeds do experimento anterior. A cGAN não foi retreinada (continua em 64 px — sintéticos já descartados da produção, ver acima).
+
+| Seed | Recall COVID — 64 px | Recall COVID — 224 px | IC 95% (224 px) |
+|---|---|---|---|
+| 42 | 0,675 | **0,915** | [0,868; 0,946] |
+| 43 | 0,765 | **0,895** | [0,845; 0,930] |
+| 44 | 0,730 | **0,925** | [0,880; 0,954] |
+| **Média ± desvio** | **0,723 ± 0,045** | **0,912 ± 0,015** | — |
+
+**A hipótese se confirmou, com folga.** O recall sobe em **todas as 3 seeds** (delta médio **+18,8 p.p.**), uma ordem de grandeza maior que qualquer variação entre seeds vista neste notebook. A variância entre seeds também cai 3× (desvio 0,045→0,015): em 64 px o recall não era só baixo, era instável; em 224 px é alto e consistente — um sinal contra a hipótese concorrente de que o teto fosse por dificuldade intrínseca dos casos ou atalho de fonte (se fosse, subir a resolução não deveria mover o recall de forma tão uniforme). As 3 estimativas pontuais já superam a meta de 0,90; 2 das 3 seeds têm o limite inferior do IC acima de 0,85, a terceira fica a 0,005 dele. Especificidade continua alta (98,6–99,5%), AUC de COVID 0,996–0,998.
+
+**O que isso não resolve.** Este continua sendo o **teste interno**, dos mesmos repositórios do treino — o critério de adoção clínica abaixo é para um teste **externo**, e o viés de fonte (item 2 da priorização) segue não auditado. O ganho pode estar parcialmente inflado pelo mesmo atalho classe×fonte já discutido na seção de dados.
+
+**Custo: como previsto, quase nada.** Recarregar as 2.700 imagens em 224 px levou 7,0 s; cada treino do classificador, 19–27 s (praticamente igual aos 21–25 s em 64 px, porque `CLS_INPUT` já era 224 antes — a rede não ficou mais cara, só a fonte dos pixels mudou). VRAM de pico por treino: 1.739–1.829 MB, dentro do orçamento do resto do notebook.
+
+![Recall de COVID: 64px vs. 224px nativo, mesmo split/seeds.](figuras/A4_hires_vs_lowres.png)
+
 ### Plano de melhoria e critério de adoção clínica
 
-Priorização guiada pelos resultados: com o recall do corrigido em 67,5% (abaixo da meta 0,90) e a GAN sem ganho no sweep, o gargalo **não é validação externa ainda** — é fechar a distância até a meta no próprio teste interno.
+Priorização original, guiada pelos resultados em 64 px: com o recall do corrigido em 67,5% (abaixo da meta 0,90) e a GAN sem ganho no sweep, o gargalo não era validação externa ainda — era fechar a distância até a meta no próprio teste interno.
 
-1. **Subir a resolução de entrada** (224–512 px, com ou sem GAN retreinada na mesma resolução) — o teto mais provável, pela perda de opacidades finas em 64 px.
-2. **Auditar e mitigar atalhos de fonte** — Pneumonia de uma única fonte, COVID de 6, é confusão classe × fonte real, não hipotética.
-3. **Reduzir a variância entre seeds** (desvio de ±4-5 p.p. no recall) — ensemble ou *test-time augmentation*.
-4. **GAN/sintéticos pausados**: não adotar nesta configuração — Δ recall médio −5,8 p.p. (1×) e −6,0 p.p. (3×), sem ganho e com o controle real-vs-sintético falhando o pré-requisito de AUC baixo (deu 1,00).
-5. Só depois de bater a meta de sensibilidade no teste interno, calcular a amostra para teste externo: **92 a 127 casos COVID confirmados**, dependendo da sensibilidade real, para que o limite inferior do IC fique acima de 0,85–0,90.
+1. ~~**Subir a resolução de entrada**~~ — **feito e confirmado** (seção acima): recall médio 0,723→0,912 (+18,8 p.p.), era de fato o teto mais provável.
+2. **Auditar e mitigar atalhos de fonte** — vira a prioridade nº 1 agora: Pneumonia de uma única fonte, COVID de 6, é confusão classe × fonte real, não hipotética, e pode estar inflando parte do ganho de resolução também.
+3. **Reduzir a variância entre seeds** — já caiu sozinha com a resolução (±4,5 p.p. → ±1,5 p.p. no recall); *ensemble*/*test-time augmentation* continuam opcionais, não mais urgentes.
+4. **GAN/sintéticos pausados**: não adotar nesta configuração — Δ recall médio −5,8 p.p. (1×) e −6,0 p.p. (3×), sem ganho e com o controle real-vs-sintético falhando o pré-requisito de AUC baixo (deu 1,00). Retreinar a cGAN em 224 px não é prioridade enquanto os sintéticos não forem adotados em nenhuma resolução.
+5. Com o teste interno agora perto ou acima da meta, o próximo passo lógico é a **auditoria de fonte (item 2)** e, resolvida ou não, o cálculo de amostra para teste externo: **92 a 127 casos COVID confirmados**, dependendo da sensibilidade real, para que o limite inferior do IC fique acima de 0,85–0,90.
 
-Critério de adoção clínica proposto (a validar com o time clínico): sensibilidade ≥ 0,90 com IC 95% inferior ≥ 0,85; especificidade ≥ 0,80 na prevalência local; calibração (ECE ≤ 0,05); humano no *loop* (o modelo prioriza a fila, não decide sozinho); estudo prospectivo silencioso antes de qualquer uso; monitoramento pós-implantação com auditoria mensal e plano de *rollback*.
+Critério de adoção clínica proposto (a validar com o time clínico): sensibilidade ≥ 0,90 **num teste externo**, com IC 95% inferior ≥ 0,85; especificidade ≥ 0,80 na prevalência local; calibração (ECE ≤ 0,05); humano no *loop* (o modelo prioriza a fila, não decide sozinho); estudo prospectivo silencioso antes de qualquer uso; monitoramento pós-implantação com auditoria mensal e plano de *rollback*. O resultado em 224 px é uma condição necessária (teste interno acima do piso) mas não suficiente — nenhum dos itens desta lista muda com ele.
 
 ### Referências
 
@@ -498,6 +518,8 @@ Critério de adoção clínica proposto (a validar com o time clínico): sensibi
 ### Uso de IA
 
 Notebook (`notebooks/src/A4_estudo_caso_raio_x.py` → `.ipynb`) escrito com Claude Code (`construtor-notebook`): diagnóstico do baseline, EDA com MD5/pHash e tabela de fontes, baseline e pipeline corrigido, cGAN condicional com *spectral norm*/*label smoothing*/TTUR, métricas de qualidade (KID/FID/LPIPS via torch-fidelity e torchmetrics), controle real-vs-sintético, *sweep* com 3 seeds e testes pareados (t, McNemar), plano de melhoria com cálculo de amostra. Análise (`analista-resultados`) escrita a partir do JSON de métricas da execução na T4 (28/09/2026) e das figuras geradas — todos os números deste texto foram conferidos contra `A4_metrics.json`. Verificação humana: pendente de revisão por Gilmar; leituras sobre atalhos de fonte e a causa da queda de recall com sintéticos mantidas como hipótese, apoiadas no controle real-vs-sintético (AUC 1,00) mas não isoladas experimentalmente.
+
+Extensão (29/09/2026), depois de um parecer externo (`parecer_avaliacao_projeto.md`) apontar os 64 px como possível teto do recall: Gilmar decidiu, junto com o orquestrador, testar isso isolando a variável resolução (Opção A: só o pipeline real, cGAN intocada), com acesso ao Colab Pro/T4. Código preparado por Claude Code (nova seção 9.1, parâmetro `data_source` em `evaluate_cls`/`run_classifier`), executado por Gilmar no Colab, e a análise acima (seção "Verificação: resolução nativa") escrita a partir do JSON real da execução — a magnitude do ganho (+18,8 p.p.) não foi presumida antes de rodar.
 
 
 ## A4.2 — Transfer Learning para Análise de Tráfego Urbano

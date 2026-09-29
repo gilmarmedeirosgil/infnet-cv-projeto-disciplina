@@ -1538,14 +1538,11 @@ savefig("hires_vs_lowres")
 plt.show()
 
 # %% [markdown]
-# <!-- ANALISE: preencher depois da execução real no Colab (T4/Pro). Cobrir: (1) o delta médio de recall foi na direção
-# esperada (224px > 64px) e de que magnitude — aproximou da meta 0,90 ou o gargalo era outra coisa (fonte, tamanho de
-# amostra, dificuldade genuína dos casos)?; (2) tempo/VRAM real de treino em 224px nativo vs 64px (o pipeline já usa
-# CLS_INPUT=224 hoje, então o custo do classificador em si não deveria mudar muito — só o recarregamento das imagens
-# e o uso de memória do X_all_hires; conferir contra TIMES['hires_reload_s'] e peak_vram_mb de cada run); (3) se o
-# ganho for pequeno/nulo, diferenciar duas leituras: a hipótese de resolução não era o gargalo principal (aponta para
-# os atalhos de fonte, item (2) da priorização acima, ou para o tamanho de amostra) vs. o downsample de 224px na EDA
-# (BICUBIC) ainda perde detalhe que só apareceria em resolução maior (299px nativo do dataset) -->
+# **A hipótese se confirmou, e com folga.** O recall de COVID no teste subiu em **todas as 3 seeds** ao trocar 64px por 224px nativo, mesmo split, mesma arquitetura e hiperparâmetros: 0,675→0,915 (seed 42), 0,765→0,895 (seed 43), 0,730→0,925 (seed 44). A média sobe de **0,723 ± 0,045 para 0,912 ± 0,015** — um ganho de **+18,8 p.p.**, uma ordem de grandeza maior que a variação entre seeds observada em qualquer outro experimento deste notebook (o gap entre seeds da cGAN, por exemplo, é de poucos p.p.). Além do ganho em média, a **variância entre seeds caiu 3×** (desvio 0,045→0,015): em 64px, o recall não era só baixo, era instável; em 224px, é alto e consistente. Isso pesa contra a hipótese concorrente ("a resolução não era o gargalo, era dificuldade genuína dos casos ou atalho de fonte") — se o teto fosse por dificuldade intrínseca ou atalho, subir a resolução não deveria mover o recall de forma tão uniforme nas 3 seeds.
+#
+# **Onde isso deixa a meta.** As 3 estimativas pontuais (0,915 / 0,895 / 0,925) já ultrapassam a meta de recall ≥ 0,90 da Aula 7. Os ICs de Wilson por seed são [0,868; 0,946], [0,845; 0,930] e [0,880; 0,954] — 2 das 3 seeds têm o limite inferior acima de 0,85 (o critério parcial usado na priorização anterior), a terceira (seed 43) fica a 0,005 dele. Especificidade continua alta (98,6–99,5%), AUC de COVID 0,996–0,998, e a accuracy ponderada 7:2:1 sobe para ~97%. **Mas isso não fecha o critério de adoção clínica da seção 9**: aquele critério é para um **teste externo**, com hospitais e pacientes nunca vistos — este resultado continua sendo o teste interno, dos mesmos repositórios do treino (viés de fonte, item 2 da priorização, segue não auditado). O que muda é a prioridade: com o teste interno agora perto ou acima da meta, o gargalo deixou de ser resolução e passa a ser, nesta ordem, (1) confirmar que o ganho não é parcialmente atalho de fonte (auditoria pendente) e (2) o cálculo de amostra para o teste externo de verdade (seção 9, 92–127 casos COVID).
+#
+# **Custo: exatamente o previsto, quase nada.** Recarregar as 2.700 imagens em 224px levou 7,0s; cada treino do classificador, 19–27s (contra 21–25s em 64px — sem diferença real, como esperado, já que `CLS_INPUT` já era 224 antes). VRAM de pico por treino: 1.739–1.829 MB, dentro do orçamento usado no resto do notebook (pico geral 3.274 MB). A cGAN não foi tocada. Ou seja: um ganho de quase 19 p.p. de recall por menos de 2 minutos de GPU a mais — a prioridade (1) da seção 9 ("subir a resolução") era, de fato, a de maior custo-benefício da lista.
 
 # %% [markdown]
 # ## 10. Métricas finais (JSON)

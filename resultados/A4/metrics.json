@@ -428,6 +428,529 @@
       "val_covid_recall": 0.6666666666666666
     }
   },
+  "hires_224": {
+    "image_size": 224,
+    "reload_time_s": 7.0,
+    "runs": {
+      "42": {
+        "name": "hires224_corrected_s42",
+        "seed": 42,
+        "split": "stratified",
+        "config": {
+          "pretrained": true,
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "momentum": null,
+          "weight_decay": 0.05,
+          "epochs": 25,
+          "batch_size": 64,
+          "augment": true,
+          "class_weights": true,
+          "scheduler": "cosine",
+          "warmup_epochs": 1,
+          "select": "val_macro_f1",
+          "patience": 7
+        },
+        "n_train_real": 960,
+        "n_synthetic": 0,
+        "train_class_counts": {
+          "COVID": 96,
+          "Normal": 672,
+          "Pneumonia": 192
+        },
+        "class_weights": [
+          3.3333,
+          0.4762,
+          1.6667
+        ],
+        "best_epoch": 12,
+        "epochs_run": 19,
+        "train_real_accuracy": 99.6875,
+        "val": {
+          "accuracy": 97.08333333333333,
+          "macro_f1": 0.9520767759840254,
+          "precision": {
+            "COVID": 0.88,
+            "Normal": 0.9820359281437125,
+            "Pneumonia": 0.9791666666666666
+          },
+          "recall": {
+            "COVID": 0.9166666666666666,
+            "Normal": 0.9761904761904762,
+            "Pneumonia": 0.9791666666666666
+          },
+          "f1": {
+            "COVID": 0.8979591836734694,
+            "Normal": 0.9791044776119403,
+            "Pneumonia": 0.9791666666666666
+          },
+          "support": {
+            "COVID": 24,
+            "Normal": 168,
+            "Pneumonia": 48
+          },
+          "confusion_matrix": [
+            [
+              22,
+              2,
+              0
+            ],
+            [
+              3,
+              164,
+              1
+            ],
+            [
+              0,
+              1,
+              47
+            ]
+          ],
+          "covid_recall": 0.9166666666666666,
+          "covid_recall_ci95": [
+            0.741507847985494,
+            0.9768416721570266
+          ],
+          "covid_tp": 22,
+          "covid_fn": 2,
+          "covid_specificity": 0.9861111111111112,
+          "covid_ppv_at_prev10": 0.8800000000000003,
+          "prevalence_weighted_accuracy": 97.08333333333331,
+          "pred_distribution": {
+            "COVID": 25,
+            "Normal": 167,
+            "Pneumonia": 48
+          },
+          "covid_auc": 0.9959490740740742,
+          "loss": 0.10628171265125275
+        },
+        "test": {
+          "accuracy": 95.66666666666667,
+          "macro_f1": 0.9568347413216148,
+          "precision": {
+            "COVID": 0.9891891891891892,
+            "Normal": 0.9041095890410958,
+            "Pneumonia": 0.9846938775510204
+          },
+          "recall": {
+            "COVID": 0.915,
+            "Normal": 0.99,
+            "Pneumonia": 0.965
+          },
+          "f1": {
+            "COVID": 0.9506493506493506,
+            "Normal": 0.9451073985680191,
+            "Pneumonia": 0.9747474747474747
+          },
+          "support": {
+            "COVID": 200,
+            "Normal": 200,
+            "Pneumonia": 200
+          },
+          "confusion_matrix": [
+            [
+              183,
+              14,
+              3
+            ],
+            [
+              2,
+              198,
+              0
+            ],
+            [
+              0,
+              7,
+              193
+            ]
+          ],
+          "covid_recall": 0.915,
+          "covid_recall_ci95": [
+            0.8681031145576462,
+            0.9462547005301477
+          ],
+          "covid_tp": 183,
+          "covid_fn": 17,
+          "covid_specificity": 0.995,
+          "covid_ppv_at_prev10": 0.953125,
+          "prevalence_weighted_accuracy": 97.75,
+          "pred_distribution": {
+            "COVID": 185,
+            "Normal": 219,
+            "Pneumonia": 196
+          },
+          "covid_auc": 0.9977999999999999,
+          "loss": 0.10217373818159103
+        },
+        "train_time_s": 21.5,
+        "peak_vram_mb": 1739,
+        "peak_vram_reserved_mb": 3354,
+        "gan_tag": null,
+        "history_last": {
+          "epoch": 19,
+          "lr": 4.6494642993797704e-05,
+          "train_loss": 0.0009092250974693646,
+          "train_acc": 100.0,
+          "val_loss": 0.11383218318223953,
+          "val_acc": 96.66666666666667,
+          "val_macro_f1": 0.9416877483349055,
+          "val_covid_recall": 0.8333333333333334
+        }
+      },
+      "43": {
+        "name": "hires224_corrected_s43",
+        "seed": 43,
+        "split": "stratified",
+        "config": {
+          "pretrained": true,
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "momentum": null,
+          "weight_decay": 0.05,
+          "epochs": 25,
+          "batch_size": 64,
+          "augment": true,
+          "class_weights": true,
+          "scheduler": "cosine",
+          "warmup_epochs": 1,
+          "select": "val_macro_f1",
+          "patience": 7
+        },
+        "n_train_real": 960,
+        "n_synthetic": 0,
+        "train_class_counts": {
+          "COVID": 96,
+          "Normal": 672,
+          "Pneumonia": 192
+        },
+        "class_weights": [
+          3.3333,
+          0.4762,
+          1.6667
+        ],
+        "best_epoch": 18,
+        "epochs_run": 25,
+        "train_real_accuracy": 100.0,
+        "val": {
+          "accuracy": 97.5,
+          "macro_f1": 0.9593253968253967,
+          "precision": {
+            "COVID": 0.9166666666666666,
+            "Normal": 0.9821428571428571,
+            "Pneumonia": 0.9791666666666666
+          },
+          "recall": {
+            "COVID": 0.9166666666666666,
+            "Normal": 0.9821428571428571,
+            "Pneumonia": 0.9791666666666666
+          },
+          "f1": {
+            "COVID": 0.9166666666666666,
+            "Normal": 0.9821428571428571,
+            "Pneumonia": 0.9791666666666666
+          },
+          "support": {
+            "COVID": 24,
+            "Normal": 168,
+            "Pneumonia": 48
+          },
+          "confusion_matrix": [
+            [
+              22,
+              2,
+              0
+            ],
+            [
+              2,
+              165,
+              1
+            ],
+            [
+              0,
+              1,
+              47
+            ]
+          ],
+          "covid_recall": 0.9166666666666666,
+          "covid_recall_ci95": [
+            0.741507847985494,
+            0.9768416721570266
+          ],
+          "covid_tp": 22,
+          "covid_fn": 2,
+          "covid_specificity": 0.9907407407407407,
+          "covid_ppv_at_prev10": 0.9166666666666663,
+          "prevalence_weighted_accuracy": 97.49999999999999,
+          "pred_distribution": {
+            "COVID": 24,
+            "Normal": 168,
+            "Pneumonia": 48
+          },
+          "covid_auc": 0.9949845679012346,
+          "loss": 0.11696909368038177
+        },
+        "test": {
+          "accuracy": 94.5,
+          "macro_f1": 0.9456993106044752,
+          "precision": {
+            "COVID": 1.0,
+            "Normal": 0.8620689655172413,
+            "Pneumonia": 0.9947089947089947
+          },
+          "recall": {
+            "COVID": 0.895,
+            "Normal": 1.0,
+            "Pneumonia": 0.94
+          },
+          "f1": {
+            "COVID": 0.9445910290237467,
+            "Normal": 0.9259259259259259,
+            "Pneumonia": 0.9665809768637532
+          },
+          "support": {
+            "COVID": 200,
+            "Normal": 200,
+            "Pneumonia": 200
+          },
+          "confusion_matrix": [
+            [
+              179,
+              20,
+              1
+            ],
+            [
+              0,
+              200,
+              0
+            ],
+            [
+              0,
+              12,
+              188
+            ]
+          ],
+          "covid_recall": 0.895,
+          "covid_recall_ci95": [
+            0.8448186177864638,
+            0.9302930375380627
+          ],
+          "covid_tp": 179,
+          "covid_fn": 21,
+          "covid_specificity": 1.0,
+          "covid_ppv_at_prev10": 1.0,
+          "prevalence_weighted_accuracy": 97.75,
+          "pred_distribution": {
+            "COVID": 179,
+            "Normal": 232,
+            "Pneumonia": 189
+          },
+          "covid_auc": 0.9983624999999999,
+          "loss": 0.15375716984272003
+        },
+        "train_time_s": 27.2,
+        "peak_vram_mb": 1826,
+        "peak_vram_reserved_mb": 3454,
+        "gan_tag": null,
+        "history_last": {
+          "epoch": 25,
+          "lr": 2.9999999999999997e-06,
+          "train_loss": 0.001274573077292492,
+          "train_acc": 100.0,
+          "val_loss": 0.12668021023273468,
+          "val_acc": 97.08333333333333,
+          "val_macro_f1": 0.9549477697423535,
+          "val_covid_recall": 0.9166666666666666
+        }
+      },
+      "44": {
+        "name": "hires224_corrected_s44",
+        "seed": 44,
+        "split": "stratified",
+        "config": {
+          "pretrained": true,
+          "optimizer": "adamw",
+          "lr": 0.0003,
+          "momentum": null,
+          "weight_decay": 0.05,
+          "epochs": 25,
+          "batch_size": 64,
+          "augment": true,
+          "class_weights": true,
+          "scheduler": "cosine",
+          "warmup_epochs": 1,
+          "select": "val_macro_f1",
+          "patience": 7
+        },
+        "n_train_real": 960,
+        "n_synthetic": 0,
+        "train_class_counts": {
+          "COVID": 96,
+          "Normal": 672,
+          "Pneumonia": 192
+        },
+        "class_weights": [
+          3.3333,
+          0.4762,
+          1.6667
+        ],
+        "best_epoch": 10,
+        "epochs_run": 17,
+        "train_real_accuracy": 99.6875,
+        "val": {
+          "accuracy": 97.5,
+          "macro_f1": 0.9604008649367931,
+          "precision": {
+            "COVID": 0.8846153846153846,
+            "Normal": 0.9879518072289156,
+            "Pneumonia": 0.9791666666666666
+          },
+          "recall": {
+            "COVID": 0.9583333333333334,
+            "Normal": 0.9761904761904762,
+            "Pneumonia": 0.9791666666666666
+          },
+          "f1": {
+            "COVID": 0.92,
+            "Normal": 0.9820359281437125,
+            "Pneumonia": 0.9791666666666666
+          },
+          "support": {
+            "COVID": 24,
+            "Normal": 168,
+            "Pneumonia": 48
+          },
+          "confusion_matrix": [
+            [
+              23,
+              1,
+              0
+            ],
+            [
+              3,
+              164,
+              1
+            ],
+            [
+              0,
+              1,
+              47
+            ]
+          ],
+          "covid_recall": 0.9583333333333334,
+          "covid_recall_ci95": [
+            0.7975777375115778,
+            0.992606734645195
+          ],
+          "covid_tp": 23,
+          "covid_fn": 1,
+          "covid_specificity": 0.9861111111111112,
+          "covid_ppv_at_prev10": 0.884615384615385,
+          "prevalence_weighted_accuracy": 97.49999999999999,
+          "pred_distribution": {
+            "COVID": 26,
+            "Normal": 166,
+            "Pneumonia": 48
+          },
+          "covid_auc": 0.9944058641975309,
+          "loss": 0.13873949646949768
+        },
+        "test": {
+          "accuracy": 95.16666666666667,
+          "macro_f1": 0.9520848549810075,
+          "precision": {
+            "COVID": 0.9788359788359788,
+            "Normal": 0.8914027149321267,
+            "Pneumonia": 0.9947368421052631
+          },
+          "recall": {
+            "COVID": 0.925,
+            "Normal": 0.985,
+            "Pneumonia": 0.945
+          },
+          "f1": {
+            "COVID": 0.9511568123393316,
+            "Normal": 0.9358669833729216,
+            "Pneumonia": 0.9692307692307692
+          },
+          "support": {
+            "COVID": 200,
+            "Normal": 200,
+            "Pneumonia": 200
+          },
+          "confusion_matrix": [
+            [
+              185,
+              15,
+              0
+            ],
+            [
+              2,
+              197,
+              1
+            ],
+            [
+              2,
+              9,
+              189
+            ]
+          ],
+          "covid_recall": 0.925,
+          "covid_recall_ci95": [
+            0.8799554020266798,
+            0.9540254929427476
+          ],
+          "covid_tp": 185,
+          "covid_fn": 15,
+          "covid_specificity": 0.99,
+          "covid_ppv_at_prev10": 0.9113300492610836,
+          "prevalence_weighted_accuracy": 97.10000000000001,
+          "pred_distribution": {
+            "COVID": 189,
+            "Normal": 221,
+            "Pneumonia": 190
+          },
+          "covid_auc": 0.99695,
+          "loss": 0.10234268754720688
+        },
+        "train_time_s": 19.2,
+        "peak_vram_mb": 1829,
+        "peak_vram_reserved_mb": 3446,
+        "gan_tag": null,
+        "history_last": {
+          "epoch": 17,
+          "lr": 7.725000000000003e-05,
+          "train_loss": 0.0014808033360168339,
+          "train_acc": 100.0,
+          "val_loss": 0.12656952440738678,
+          "val_acc": 97.5,
+          "val_macro_f1": 0.9551502000229791,
+          "val_covid_recall": 0.875
+        }
+      }
+    },
+    "vs_64px": {
+      "seeds": [
+        42,
+        43,
+        44
+      ],
+      "recall_covid_64px": [
+        0.675,
+        0.765,
+        0.73
+      ],
+      "recall_covid_224px": [
+        0.915,
+        0.895,
+        0.925
+      ],
+      "mean_64px": 0.7233333333333333,
+      "std_64px": 0.04536885862938731,
+      "mean_224px": 0.9116666666666667,
+      "std_224px": 0.01527525231651948,
+      "mean_delta": 0.18833333333333335
+    }
+  },
   "gan": {
     "common_config": {
       "nz": 100,
@@ -1423,16 +1946,17 @@
     "force_retrain": false
   },
   "times_s": {
-    "pip_s": 18.8,
-    "download_s": 2.2,
-    "sampling_s": 11.6,
-    "baseline_s": 18.0,
-    "corrected_s": 25.0,
-    "metric_setup_s": 13.3,
-    "gan_runA_naive_s": 127.3,
-    "gan_runB_mitigated_s": 156.7,
-    "control_s": 7.4,
-    "sweep_s": 208.4
+    "pip_s": 19.1,
+    "download_s": 34.6,
+    "sampling_s": 11.4,
+    "baseline_s": 0.9,
+    "corrected_s": 6.5,
+    "metric_setup_s": 13.8,
+    "gan_runA_naive_s": 3.2,
+    "gan_runB_mitigated_s": 3.6,
+    "control_s": 11.1,
+    "sweep_s": 6.9,
+    "hires_reload_s": 7.0
   },
   "figures": [
     "A4_data_overview.png",
@@ -1445,12 +1969,13 @@
     "A4_gan_final_samples.png",
     "A4_gan_memorization.png",
     "A4_sweep_covid_metrics.png",
-    "A4_sweep_confusion.png"
+    "A4_sweep_confusion.png",
+    "A4_hires_vs_lowres.png"
   ],
   "peak_vram_notebook_mb": 3274,
-  "ram_rss_mb": 2614,
-  "ram_maxrss_mb": 2768,
-  "notebook_time_s": 809.5,
+  "ram_rss_mb": 2686,
+  "ram_maxrss_mb": 2686,
+  "notebook_time_s": 330.8,
   "notebook_time_scope": "da 1a célula de código (pip) até esta célula; com checkpoints no Drive, a reexecução pula os treinos",
   "gpu": "Tesla T4",
   "versions": {
