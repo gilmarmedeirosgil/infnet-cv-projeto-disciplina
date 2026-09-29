@@ -17,7 +17,7 @@ Um grupo anterior treinou uma ResNet-18 do zero para triar radiografias de tóra
 | 7 | SGD com LR fixo, 15 épocas arbitrárias | Resultado não reprodutível entre seeds |
 | 8 | Vazamento por paciente e viés de fonte | Falha silenciosa em produção; o modelo pode aprender a fonte, não a doença |
 
-**Confirmação numérica.** Prever "Normal" para tudo já dá **70,0%** de accuracy na distribuição enviesada de desenvolvimento (perto dos 61%/93% do relatório do grupo) — o paradoxo da acurácia direto — mas só **33,3%** de accuracy balanceada e **0% de recall de COVID** num teste equilibrado. Reproduzindo a receita do grupo (seção seguinte): treino 100%, validação aleatória 89,6% (um número que parece bom), mas **teste 70,5%**, com recall de COVID de apenas **23,5%** — a validação, embaralhada na mesma distribuição enviesada do treino, não expôs o problema.
+**Confirmação numérica.** Prever "Normal" para tudo já dá **70,0%** de accuracy na distribuição enviesada de desenvolvimento (acima dos 61% de validação e abaixo dos 93% de treino do relatório do grupo) — o paradoxo da acurácia direto — mas só **33,3%** de accuracy balanceada e **0% de recall de COVID** num teste equilibrado. Reproduzindo a receita do grupo (seção seguinte): treino 100%, validação aleatória 89,6% (um número que parece bom), mas **teste 70,5%**, com recall de COVID de apenas **23,5%** — a validação, embaralhada na mesma distribuição enviesada do treino, não expôs o problema.
 
 ### Dados
 
@@ -44,10 +44,10 @@ Um grupo anterior treinou uma ResNet-18 do zero para triar radiografias de tóra
 | **Macro-F1 teste** | 0,665 | **0,874** |
 | **Recall COVID teste** | 23,5% (47/200) | **67,5%** (135/200) |
 | IC 95% (Wilson) do recall | — | **[60,7%; 73,6%]** |
-| Especificidade COVID | — | **100%** |
+| Especificidade COVID | 99,0% | **100%** |
 | VPP a 10% de prevalência | 72,3% | **100%** |
 
-![Matrizes de confusão: baseline vs. corrigido, validação e teste.](figuras/A4_baseline_vs_corrected.png)
+![Matrizes de confusão: baseline vs. corrigido (teste).](figuras/A4_baseline_vs_corrected.png)
 
 O pipeline corrigido não isola cada correção por ablação — a melhoria é do **pacote completo**; a leitura mais defensável é que pré-treino e pesos de classe atacam os dois problemas mais graves do baseline (features do zero com poucos dados; fronteira deslocada para Normal). **A meta de recall ≥ 0,90 da Aula 7 não foi atingida**: 0,675 no teste, limite inferior do IC (0,607) abaixo até de 0,85. O pipeline corrigido é uma melhoria grande e real, mas **não está pronto para triagem clínica** por esse critério.
 
@@ -75,11 +75,13 @@ Duas runs, mesma arquitetura condicional (embedding de classe, ruído 100-d), 25
 | Razão de memorização (NN sint./NN real) | 0,970 | 0,972 |
 | Fração de sintéticas mais próximas do treino que qualquer real | 0,0 | 0,0 |
 
-A Run B melhora o KID nas 3 classes (mais em Pneumonia), mas **piora bastante o condicionamento de Pneumonia** (0,78 → 0,20) — um *trade-off* real que o KID sozinho não mostra. **Normal é o pior condicionamento nas duas runs** (perto de zero): o gerador não captura bem a ausência de opacidade que define "normal". A razão de memorização perto de 1,0 e a fração 0,0 de sintéticas "cópia" descartam decoreba do treino.
+A Run B melhora o KID nas 3 classes (mais em Pneumonia), mas **piora bastante o condicionamento de Pneumonia** (0,78 → 0,20) — um *trade-off* real que o KID sozinho não mostra. **Normal é o pior condicionamento nas duas runs** (perto de zero). A leitura direta é que o gerador não captura bem a ausência de opacidade que define "normal" — mas há uma explicação alternativa não descartada: como o controle real×sintético (abaixo) dá AUC 1,00, o classificador usado para medir condicionamento (que pondera COVID em ~3,3×) pode rotular qualquer imagem "com cara de sintética" como COVID, inflando o condicionamento de COVID às custas de Normal/Pneumonia. Não foi medida a distribuição completa de predições das sintéticas de Normal/Pneumonia, o que distinguiria as duas hipóteses — fica como limite da análise. A razão de memorização perto de 1,0 e a fração 0,0 de sintéticas "cópia" descartam decoreba do treino.
 
-**Controle real vs. sintético: AUC = 1,00 ± 0,00** (300 por classe, com features de CNN e com um classificador raso). Separação **perfeita** — alerta forte de atalho: um classificador treinado com as duas populações juntas pode aprender "cara de sintético" em vez da doença.
+**Controle real vs. sintético: AUC = 1,00 ± 0,00** (300 por classe, com uma regressão logística sobre features do Inception e com uma CNN pequena treinada direto sobre os pixels). Separação **perfeita** nos dois métodos — alerta forte de atalho: um classificador treinado com as duas populações juntas pode aprender "cara de sintético" em vez da doença.
 
-![Amostras finais da cGAN e teste de memorização (vizinho mais próximo).](figuras/A4_gan_final_samples.png)
+![Amostras finais da cGAN.](figuras/A4_gan_final_samples.png)
+
+![Teste de memorização: vizinho mais próximo real vs. sintético.](figuras/A4_gan_memorization.png)
 
 ### Com vs. sem sintéticos: o experimento decisivo
 
@@ -95,7 +97,9 @@ A média do recall **cai** com sintéticos. A diferença pareada (1×−0×) tem
 
 Precisão e especificidade de COVID **sobem** (não descem) com sintéticos (98,7%→99,5%→99,0%), enquanto o recall cai — o oposto do que um deslocamento de fronteira "para COVID" previria. A leitura mais provável: os sintéticos **diluem** o sinal de treino, gastando capacidade do modelo em características do COVID sintético que não transferem para o COVID real do teste — coerente com o AUC de 1,00 do controle real-vs-sintético. O ponto 0× já treina com pesos de classe; os sintéticos não têm ganho incremental sobre o que os pesos já entregam.
 
-![Métricas de COVID no sweep 0×/1×/3× e matrizes de confusão.](figuras/A4_sweep_covid_metrics.png)
+![Métricas de COVID no sweep 0×/1×/3×.](figuras/A4_sweep_covid_metrics.png)
+
+![Matrizes de confusão do sweep, por multiplicador e seed.](figuras/A4_sweep_confusion.png)
 
 **Conclusão honesta.** Neste experimento (3 classes, 64 px, pipeline já corrigido, 3 seeds), a GAN **não ajudou** — há indícios reais, embora não conclusivos na média de 3 seeds, de que **atrapalhou** o recall de COVID. Contrasta com a Aula 7 (+13 p.p., 1 seed): a diferença mais provável é o número de seeds, não o pipeline — um único treino pode acertar por sorte de inicialização/split.
 

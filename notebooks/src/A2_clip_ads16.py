@@ -181,16 +181,20 @@ rng = np.random.RandomState(SEED)
 for _, g in groups:
     take = min(len(g), per_group)
     sampled.append(g.sample(n=take, random_state=SEED))
-user_df = pd.concat(sampled, ignore_index=True)
-# completar/ajustar para bater exatamente o alvo (sem viés: embaralha e corta/adiciona por grupos)
+# mantém o índice original de user_df_all em `sampled` (NÃO ignore_index aqui) para que o
+# "remaining" abaixo consiga excluir de fato as linhas já sorteadas, não linhas 0..N-1 arbitrárias.
+user_df = pd.concat(sampled)
 if len(user_df) > n_user_target:
-    user_df = user_df.sample(n=n_user_target, random_state=SEED).reset_index(drop=True)
+    user_df = user_df.sample(n=n_user_target, random_state=SEED)
 elif len(user_df) < n_user_target:
-    remaining = user_df_all.drop(user_df.index, errors="ignore")
+    remaining = user_df_all.drop(index=user_df.index)
     extra = remaining.sample(n=min(len(remaining), n_user_target - len(user_df)), random_state=SEED)
-    user_df = pd.concat([user_df, extra], ignore_index=True)
+    user_df = pd.concat([user_df, extra])
+assert user_df.index.is_unique and not user_df.index.duplicated().any(), "imagem de usuário duplicada na amostra"
+user_df = user_df.reset_index(drop=True)
 
 corpus_df = pd.concat([ads_df, user_df], ignore_index=True)
+assert corpus_df.path.nunique() == len(corpus_df), "há caminho de imagem duplicado no corpus final"
 print(f"Corpus final: {len(corpus_df)} imagens ({len(ads_df)} anúncios + {len(user_df)} de usuários, "
       f"de {user_df.user.nunique()} usuários, estratificado por usuário × POS/NEG)")
 corpus_df.to_csv(OUT_DIR / "A2_corpus.csv", index=False)
@@ -289,12 +293,20 @@ def get_text_features_clean(texts, batch_size=64):
     return torch.cat(feats, dim=0)
 
 # %%
-CACHE_PATH = OUT_DIR / "A2_image_embeds.npy"
+import hashlib
 from PIL import Image
+
+# Cache chaveado por um fingerprint do corpus (não só o tamanho): qualquer mudança na lista de
+# caminhos (reamostragem, bug corrigido, corpus diferente) muda o hash e força recálculo — um
+# corpus antigo em cache NUNCA é usado silenciosamente com um corpus_df novo (o formato antigo,
+# `A2_image_embeds.npy` sem fingerprint, é ignorado de propósito).
+CORPUS_FINGERPRINT = hashlib.sha256("\n".join(corpus_df.path).encode()).hexdigest()[:16]
+CACHE_PATH = OUT_DIR / f"A2_image_embeds_{CORPUS_FINGERPRINT}.npy"
+print("Fingerprint do corpus:", CORPUS_FINGERPRINT)
 
 if CACHE_PATH.exists() and not globals().get("FORCE_RECOMPUTE", False):
     image_embeds = torch.from_numpy(np.load(CACHE_PATH))
-    print(f"Embeddings carregados do cache: {tuple(image_embeds.shape)}")
+    print(f"Embeddings carregados do cache ({CACHE_PATH.name}): {tuple(image_embeds.shape)}")
 else:
     t0 = time.time()
     pil_images, ok_idx = [], []
@@ -309,7 +321,33 @@ else:
     np.save(CACHE_PATH, image_embeds.numpy())
     print(f"Embeddings calculados para {len(pil_images)} imagens em {time.time() - t0:.1f}s")
 
+assert len(image_embeds) == len(corpus_df), "embeddings e corpus_df com tamanhos diferentes — cache incompatível"
 print("shape:", tuple(image_embeds.shape), "| norma média:", image_embeds.norm(dim=-1).mean().item())
+
+# %%
+# Sanidade da extração do embedding (Rubrica 4.2/4.3): confirma que _extract_embed pega o vetor
+# certo mesmo se um dia a versão do transformers mudar de novo. Compara com o forward "cru" do
+# CLIPModel, cujos .image_embeds/.text_embeds são, por definição, o embedding projetado.
+with torch.no_grad():
+    _sanity_img = clip_processor(images=[Image.open(corpus_df.path[0]).convert("RGB")], return_tensors="pt").to(device)
+    _raw = clip_model(**_sanity_img, **clip_processor(text=["a photo."], return_tensors="pt").to(device))
+    _via_get = _extract_embed(clip_model.get_image_features(**_sanity_img))
+    _diff_img = (F.normalize(_raw.image_embeds, dim=-1) - F.normalize(_via_get, dim=-1)).abs().max().item()
+    assert _diff_img < 1e-4, f"get_image_features não bate com o forward cru do CLIPModel (diff={_diff_img})"
+print(f"OK: _extract_embed(get_image_features) bate com CLIPModel(...).image_embeds (diff={_diff_img:.1e})")
+
+# %%
+# Sanidade extra (barata): zero-shot dos 301 anúncios contra as 20 categorias do próprio ADS-16
+# (1 template só, sem ensembling — é só um teste de sanidade, não a entrega da seção 6).
+# Acaso = 5%; se o CLIP estiver funcionando de verdade neste corpus, deve ficar bem acima disso.
+_ads_mask = (corpus_df.source == "ads").to_numpy()
+_cat_embeds_sanity = get_text_features_clean([f"an advertisement about {c.lower()}." for c in CATEGORY_NAMES])
+_sim_cat = (image_embeds[_ads_mask] @ _cat_embeds_sanity.T).numpy()
+_pred_cat = np.array(CATEGORY_NAMES)[_sim_cat.argmax(1)]
+_true_cat = corpus_df.category[_ads_mask].to_numpy()
+_acc_cat = float((_pred_cat == _true_cat).mean())
+print(f"Zero-shot anúncio->categoria (sanidade, não é rubrica): {_acc_cat:.1%} de acerto em {int(_ads_mask.sum())} "
+      f"anúncios contra as 20 categorias do ADS-16 (acaso = 5%)")
 
 # %% [markdown]
 # ## 6. Ranking de conceitos por vocabulário aberto — **Rubrica 4.2**
@@ -345,7 +383,6 @@ concept_embeds = ensemble_text_embeds(CONCEPTS)
 print("concept_embeds:", tuple(concept_embeds.shape))
 
 # neutro para threshold por margem (§6.1)
-neutral_embed = ensemble_text_embeds(["image"])  # "a photo of a image." não faz sentido; usar prompt neutro dedicado abaixo
 neutral_prompts = ["a photo.", "an advertisement.", "a picture."]
 neutral_e = get_text_features_clean(neutral_prompts)
 neutral_embed = F.normalize(neutral_e.mean(dim=0, keepdim=True), dim=-1)
@@ -360,7 +397,7 @@ print(f"cosseno vs prompt neutro: média {sim_neutral.mean():.3f} ± {sim_neutra
 # ### 6.1 Threshold de ocorrência — **Rubrica 4.2**
 # O material da aula não ensina como calibrar um limiar absoluto sobre cosseno bruto, e por bom motivo: cossenos de pares corretos no CLIP ficam tipicamente entre ~0,25 e ~0,35, e o "fundo" (pares incorretos) em ~0,20–0,25 (medido no material da Aula 6, fine-tuning nb[10]: correto 0,2918, incorreto 0,2384). Um threshold fixo como 0,5 nunca dispararia.
 #
-# **Critério escolhido: margem sobre um prompt neutro.** Um conceito $c$ "ocorre" numa imagem $i$ se $s(i,c) - s(i,\text{neutro}) > \delta$, onde o "neutro" é a média (mesmo esquema de ensembling) de `"a photo."`, `"an advertisement."`, `"a picture."` — descrições que qualquer imagem do corpus satisfaz igualmente bem, servindo de referência do "cosseno de fundo" daquela imagem específica (em vez de um valor fixo global, compensa imagens que têm cosseno geral mais alto/baixo com qualquer texto). O valor de $\delta$ é fixado no **percentil 90 da distribuição de margens** de todas as combinações (imagem, conceito) do corpus — ou seja, por construção, ~10% das combinações "ocorrem", o que é plausível para 24 conceitos concretos numa imagem que tipicamente mostra 1–3 objetos relevantes.
+# **Critério escolhido: margem sobre um prompt neutro.** Um conceito $c$ "ocorre" numa imagem $i$ se $s(i,c) - s(i,\text{neutro}) > \delta$, onde o "neutro" é a média (mesmo esquema de ensembling) de `"a photo."`, `"an advertisement."`, `"a picture."` — descrições que qualquer imagem do corpus satisfaz igualmente bem, servindo de referência do "cosseno de fundo" daquela imagem específica (em vez de um valor fixo global, compensa imagens que têm cosseno geral mais alto/baixo com qualquer texto). O valor de $\delta$ é fixado no **percentil 90 da distribuição de margens** de todas as combinações (imagem, conceito) do corpus — ou seja, por construção, ~10% das combinações "ocorrem", o que é plausível para 25 conceitos concretos numa imagem que tipicamente mostra 1–3 objetos relevantes.
 
 # %%
 margin = sim_matrix - sim_neutral[:, None]     # [N_imgs, N_concepts]
@@ -418,9 +455,9 @@ savefig("top5_concepts_grid")
 plt.show()
 
 # %% [markdown]
-# **Leitura dos resultados.** Os conceitos mais frequentes são genéricos do dia a dia — *a toy* (23,8% do corpus), *a baby* (19,4%), *an item of clothing* (18,9%), *a kitchen appliance* (18,8%), *food or groceries* (16,9%) — coerente com a hipótese de que anúncios e fotos favoritas de usuários compartilham objetos comuns. *A couple on a date* aparece em 10,0% (11º lugar) e *money or casino chips* em só 4,5% (21º), uma frequência baixa mas presente, plausivelmente ligada às categorias Dating Sites e Betting do ADS-16.
+# **Leitura dos resultados.** A checagem de sanidade da seção 5 (zero-shot anúncio→categoria) deu **55,8%** de acerto contra 5% de acaso — o pipeline está alinhado. Os conceitos mais frequentes são genéricos do dia a dia — *a kitchen appliance* (23,5% do corpus), *a toy* (22,3%), *an item of clothing* (19,4%), *a garden tool* (18,9%), *sports equipment* (16,8%) — coerente com anúncios de e-commerce e fotos pessoais de objetos comuns.
 #
-# **Mas a grade top-4 (abaixo) revela um problema sério: o ranking não está encontrando o que diz encontrar.** Nas 4 imagens de maior score de *a toy*, aparecem uma mangueira, um homem fazendo *kiteboard*, um anúncio de plantas e um anúncio da PokerStars — **nenhum brinquedo**. Em *a baby*, aparecem uma foto de micro-organismos, um homem com uvas no peito, e um desenho de gato — **nenhum bebê**. O mesmo padrão se repete nos outros 3 conceitos do top-5 (ver a figura). Os cossenos desses "melhores" resultados ficam entre **0,25 e 0,29** — perto do "cosseno de fundo" descrito na seção 6.1 (por volta de 0,20–0,25), não da faixa de pares realmente correspondentes (~0,25–0,35) citada no material da aula. **Conclusão honesta**: neste corpus (anúncios pequenos e cheios de texto/logo sobreposto, mais fotos pessoais de baixa resolução), o sinal do CLIP para estes 25 conceitos é fraco demais para que o ranking por frequência separe ocorrência real de ruído — o método (margem sobre um prompt neutro, percentil 90) é estatisticamente bem definido, mas calibrado sobre um sinal que, aqui, quase não existe. Isso **confirma empiricamente**, e não só como hipótese, o limite do CLIP em domínios distantes do treino citado na seção 4: texto e logos sobrepostos competem pelo embedding da imagem inteira, e a resolução baixa das miniaturas de anúncio provavelmente agrava o problema.
+# **E, com o cache corrigido, o top-4 agora corresponde de fato ao conceito.** *A kitchen appliance*: geladeira, relógio (falso positivo), batata frita numa fritadeira, anúncio de fornos/fogões — 3 de 4. *A toy*: bico de mamadeira (próximo, produto infantil), bola de tênis, anúncio "THE TOY SALE" com caminhão de brinquedo, anúncio de Lego — 3 de 4 claramente brinquedos. *An item of clothing*: anúncio da American Apparel, padrão xadrez (tecido), grãos (falso positivo), foto de calça jeans — 3 de 4. Isso é uma virada completa em relação à leitura anterior deste notebook (nenhum acerto nos mesmos 5 conceitos): **a causa da leitura anterior era o bug do cache de embeddings desalinhado do corpus_df, não uma limitação do CLIP neste domínio.** Com o pipeline corrigido, o ranking por vocabulário aberto funciona — não perfeitamente (ainda há falsos positivos, esperado com um threshold estatístico e conceitos comuns), mas de forma clara e muito acima do ruído.
 
 # %% [markdown]
 # ## 7. Busca semântica texto→imagem — **Rubrica 4.3**
@@ -474,11 +511,11 @@ search_df = pd.DataFrame(search_records)
 search_df.to_csv(OUT_DIR / "A2_search_results.csv", index=False)
 
 # %% [markdown]
-# **Análise por consulta.** Cossenos do top-1 por consulta: *dog* 0,281 · *red sports car* 0,249 · *running shoes* 0,264 · *perfume* 0,254 · *electronics* 0,317 · *family dinner* 0,283 · *love and dating* 0,304 · *luxury* 0,258 · *excitement* 0,260 · *trust* 0,255. Ao contrário da hipótese inicial (abstratas com cosseno mais baixo), **as consultas abstratas não ficam sistematicamente abaixo das concretas** — "love and dating" tem o 2º maior score de todas as 10, maior que qualquer consulta concreta.
+# **Análise por consulta.** Cossenos do top-1: *dog* 0,284 · *red sports car* 0,247 · *running shoes* 0,269 · *perfume* 0,262 · *electronics* 0,273 · *family dinner* 0,234 · *love and dating* **0,304** (o maior de todas) · *luxury* 0,255 · *excitement* 0,250 · *trust* 0,248. Como no A1, as consultas abstratas não ficam sistematicamente abaixo das concretas.
 #
-# **Só que o score alto não significa recuperação correta.** Olhando as imagens do top-5 (não só o número): em **9 das 10 consultas, nenhuma ou quase nenhuma das 5 imagens corresponde ao pedido**. *"a photo of a dog"* traz 1 imagem com cães de verdade (um anúncio de roupas para pet) entre 5; *"a red sports car"*, *"a pair of running shoes"* e *"a bottle of perfume"* não trazem nenhum carro, tênis ou perfume — vêm ferramentas, um gato, um logo de time de futebol, uma foto de moto, uma TV. *"an advertisement about love and dating"*, apesar do **maior score de todas as consultas concretas/temáticas**, traz vinho, hambúrguer, um banco e temperos — **nenhuma relação com a categoria Dating Sites do ADS-16**, contrariando a expectativa de que o CLIP capturaria o tema do anúncio. As consultas abstratas (*luxury*, *excitement*, *trust*) também não convergem para uma estética coerente (dourado, ação, sorrisos): trazem uma mistura de capturas de tela de app, anúncios de produto e fotos de paisagem, sem um padrão visual comum discernível.
+# **E, com o cache corrigido, o top-5 agora corresponde ao pedido na maioria das consultas.** *"a photo of a dog"*: 4 das 5 imagens mostram cães de verdade. *"a pair of running shoes"*: anúncio de tênis, foto de tênis, sapatos pretos — 3 de 5. *"electronic devices and gadgets"*: bolsa de gadgets, acessórios automotivos, anúncio de tablets — 3 de 4 (a 4ª é uma piada do Buzz Lightyear sobre "phonies"/celulares). *"an advertisement about love and dating"*: **4 das 5** são sites de namoro de verdade (Match.com, Zoosk, "Senior Dating Site", ícone de coração) — a consulta com o maior cosseno também tem a recuperação mais correta, ao contrário do que a versão anterior (com o bug) mostrava. *"a feeling of luxury and exclusivity"*: resort, cosméticos, canetas de luxo, joalheria, TVs premium — bate com a convenção publicitária de luxo. As consultas mais fracas continuam sendo *"a red sports car"* (carro nenhum, só anúncios de peças automotivas — tema certo, objeto errado) e *"a family having dinner together"* (nenhuma cena de jantar em família).
 #
-# **Leitura honesta, ligada à seção 6.2.** A busca por texto neste corpus está, na prática, recuperando por um sinal fraco e difuso — provavelmente uma mistura de cor dominante, presença de texto e composição geral da miniatura — mais do que pelo conteúdo semântico da consulta. Isso é consistente com o que a seção 6.2 já mostrou para o ranking de conceitos (mesmo os "melhores" resultados dos conceitos mais frequentes não correspondiam ao conceito) e reforça a mesma conclusão: o CLIP pré-treinado, aplicado a miniaturas de anúncio pequenas e cheias de texto sobreposto, tem um desempenho de recuperação **fraco neste corpus específico** — um resultado negativo real e informativo, não um erro de implementação (a demonstração da seção 4, com o dataset de referência da aula, e a comparação de tokenização da seção 8 confirmam que o modelo e o código funcionam corretamente).
+# **Conclusão revisada.** A leitura anterior deste notebook ("CLIP tem desempenho fraco neste corpus") estava **errada, e a causa era um bug**: o cache de embeddings de uma execução anterior (com um bug diferente, já corrigido, na montagem do corpus) foi reaproveitado sem invalidação, então as imagens que apareciam nas figuras não eram as mesmas que geraram os embeddings comparados. Com o cache corrigido (chaveado por um fingerprint do corpus) e a extração do embedding verificada contra o forward cru do `CLIPModel`, o CLIP pré-treinado **recupera corretamente** a maioria das consultas neste corpus de anúncios e preferências de usuários — nem perfeito, nem aleatório: um resultado positivo moderado, coerente com o zero-shot de 55,8% da seção 5. A lição metodológica fica registrada em `docs/decisoes.md`.
 
 # %% [markdown]
 # ## 8. Consulta textual do CLIP vs. tokenização do BERT — **Rubrica 4.4**
@@ -514,8 +551,22 @@ with torch.no_grad():
     e_padded = F.normalize(_extract_embed(clip_model.get_text_features(
         **{k: v.to(device) for k, v in clip_padded.items()})), dim=-1)
 diff_clip = (e_dynamic - e_padded).abs().max().item()
-print(f"CLIP: diferença máx. entre padding dinâmico e padding='max_length' (77): {diff_clip:.2e}  "
-      f"(esperado ~1e-6: o EOT e a máscara já resolvem o padding extra)")
+print(f"CLIP: diferença máx. entre padding dinâmico e padding='max_length' (77), ambos COM attention_mask: "
+      f"{diff_clip:.2e} (esperado ~1e-6)")
+
+# O teste acima, sozinho, não isola a tese "causal + EOT dispensa a máscara": as duas versões
+# usam a attention_mask correta. Para isolar, repete com a mask zerada nos PADs (max_length) vs
+# a mask toda 1 (ignora que são PADs) — se a leitura do EOT causal for mesmo insensível ao
+# padding, a diferença deve continuar desprezível mesmo sem a mask distinguir os PADs.
+with torch.no_grad():
+    clip_padded_fake_mask = dict(clip_padded)
+    clip_padded_fake_mask["attention_mask"] = torch.ones_like(clip_padded["attention_mask"])
+    e_padded_fakemask = F.normalize(_extract_embed(clip_model.get_text_features(
+        **{k: v.to(device) for k, v in clip_padded_fake_mask.items()})), dim=-1)
+diff_clip_nomask = (e_padded - e_padded_fakemask).abs().max().item()
+print(f"CLIP: diferença máx. entre mask correta e mask toda 1 (mesmo input, max_length=77): "
+      f"{diff_clip_nomask:.2e} — se pequena como a de cima, confirma que o EOT causal já basta; "
+      f"se grande (como no BERT abaixo), a mask importa tanto quanto no BERT")
 
 # %%
 # BERT: zerar a attention_mask dos PADs muda o [CLS]? (atenção bidirecional -> deveria mudar)
