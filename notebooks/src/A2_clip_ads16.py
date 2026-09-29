@@ -8,14 +8,14 @@
 #
 # **Sobre o dataset.** O ADS-16 (Roffo & Vinciarelli, EMPIRE 2016) tem, apesar do nome, **20 categorias** de anúncios (o "16" vem do ano). Ele só tem **300 imagens de anúncio** (20 categorias × 15) — menos que as ≥500 pedidas pelo enunciado — então o corpus é completado com as **imagens dos usuários** do mesmo dataset (favoritas/não favoritas, rotuladas POS/NEG por 120 usuários), decisão D9 (`docs/decisoes.md`). **Licença**: proíbe redistribuir as imagens; a citação exigida ("The research in this paper use the ADS-16 database") está na seção 2 e no relatório. Por isso (decisão D10) este notebook, **depois de executado** (com miniaturas do ADS-16 nas saídas), **não vai para o repositório público** — só a versão-fonte sem outputs, aqui. A versão executada fica em `entregas/` (ignorado pelo git) e as figuras derivadas em `relatorio/figuras/A2_*` também (`.gitignore`).
 #
-# **Requisitos de execução (Colab)** — CLIP em inferência pura (`torch.no_grad()`), roda em CPU; valores medidos no "Executar tudo" oficial mais recente (Colab, CPU, sem GPU alocada):
+# **Requisitos de execução (Colab)** — CLIP em inferência pura (`torch.no_grad()`), roda em CPU; valores medidos no "Executar tudo" oficial mais recente (Colab, CPU, sem GPU alocada, cache de embeddings invalidado pela correção da transparência — recálculo completo das 650 imagens):
 #
 # | Recurso | Valor | Observação |
 # |---|---|---|
-# | RAM | <!-- ATUALIZAR APÓS PRÓXIMA EXECUÇÃO --> (ver `ram` no JSON final) | `resource.getrusage`, mesmo padrão do A1/A3 |
+# | RAM | **2.701 MB** (RSS) / **2.770 MB** de pico (`ru_maxrss`) | `resource.getrusage`, mesmo padrão do A1/A3 |
 # | VRAM | não aplicável (execução em CPU) | CLIP ViT-B/32 (151,3 M parâmetros) em inferência: pegada pequena, cabe folgado mesmo numa T4 se usada |
 # | Disco | ~1,5 GB (ADS-16 completo baixado pelo kagglehub; só uma fração é usada) | |
-# | Tempo total | **122,8 s (~2 min)**, em CPU | embeddings de 650 imagens (301 anúncios + 349 de usuários) em lotes de 64, sem treino |
+# | Tempo total | **322,7 s (~5,4 min)**, em CPU | embeddings de 650 imagens (301 anúncios + 349 de usuários) em lotes de 64, sem treino; mais lento que a execução anterior (122,8s) porque o fingerprint do cache mudou (correção da transparência) e forçou recálculo completo, além do custo extra de abrir cada imagem duas vezes (checagem de transparência + carregamento) |
 #
 # **Mapa da rubrica:** 4.1 → seção 4 · 4.2 → seção 6 · 4.3 → seção 7 · 4.4 → seção 8.
 #
@@ -478,9 +478,23 @@ savefig("top5_concepts_grid")
 plt.show()
 
 # %% [markdown]
-# **Leitura dos resultados.** A checagem de sanidade da seção 5 (zero-shot anúncio→categoria) deu **55,8%** de acerto contra 5% de acaso — o pipeline está alinhado. Os conceitos mais frequentes são genéricos do dia a dia — *a kitchen appliance* (23,5% do corpus), *a toy* (22,3%), *an item of clothing* (19,4%), *a garden tool* (18,9%), *sports equipment* (16,8%) — coerente com anúncios de e-commerce e fotos pessoais de objetos comuns.
+# **Leitura dos resultados.** A checagem de sanidade da seção 5 (zero-shot anúncio→categoria) deu **55,8%** de acerto contra 5% de acaso — o pipeline está alinhado. Os 5 conceitos mais frequentes: *a kitchen appliance* (154 imagens, 23,7%), *a toy* (145, 22,3%), *an item of clothing* (126, 19,4%), *a garden tool* (123, 18,9%), *sports equipment* (108, 16,6%).
 #
-# **E, com o cache corrigido, o top-4 agora corresponde de fato ao conceito.** *A kitchen appliance*: geladeira, relógio (falso positivo), batata frita numa fritadeira, anúncio de fornos/fogões — 3 de 4. *A toy*: bico de mamadeira (próximo, produto infantil), bola de tênis, anúncio "THE TOY SALE" com caminhão de brinquedo, anúncio de Lego — 3 de 4 claramente brinquedos. *An item of clothing*: anúncio da American Apparel, padrão xadrez (tecido), grãos (falso positivo), foto de calça jeans — 3 de 4. Isso é uma virada completa em relação à leitura anterior deste notebook (nenhum acerto nos mesmos 5 conceitos): **a causa da leitura anterior era o bug do cache de embeddings desalinhado do corpus_df, não uma limitação do CLIP neste domínio.** Com o pipeline corrigido, o ranking por vocabulário aberto funciona — não perfeitamente (ainda há falsos positivos, esperado com um threshold estatístico e conceitos comuns), mas de forma clara e muito acima do ruído.
+# **Critério de contagem do top-4.** Conto como acerto só quando a imagem mostra claramente um exemplar do conceito. Produto ou tema apenas tangencialmente relacionado conta como erro; imagem preta conta como erro. Anúncios só com texto (captura de anúncio do Google) que nomeiam o produto são contados à parte, como "só texto".
+#
+# | Conceito | Top-4 (esquerda → direita) | Acertos |
+# |---|---|---|
+# | a kitchen appliance | geladeira ✔ · anúncio-texto "Swatch Sale" (relógios) ✘ · comida frita pixelada numa panela escura (aparelho não identificável) ✘ · anúncio-texto "Ovens Cookers" (só texto) | **1/4** (2/4 com só texto) |
+# | a toy | bico de mamadeira MAM (produto de bebê) ✘ · bola de tênis (equipamento esportivo) ✘ · "THE TOY SALE" com caminhão de brinquedo ✔ · anúncio-texto de Lego (só texto) | **1/4** (2/4 com só texto) |
+# | an item of clothing | anúncio da American Apparel com modelo de body ✔ · estampa xadrez (tecido, não peça) ✘ · feijão cozido ✘ · calça jeans ✔ | **2/4** |
+# | a garden tool | rolo de pintura (ferramenta de pintura, não de jardim) ✘ · flauta de bambu ✘ · imagem preta ✘ · flores (açafrão) num jardim, sem ferramenta ✘ | **0/4** |
+# | sports equipment | bola de tênis ✔ · mesa de pingue-pongue ✔ · hoverboard (transporte pessoal) ✘ · imagem preta ✘ | **2/4** |
+#
+# **Total: 6 de 20 (30%)** no critério estrito; 8 de 20 contando os anúncios só texto. Excluindo as 2 imagens pretas, 6 de 18. A leitura anterior ("3 de 4" em três conceitos) estava inflada: contava bola de tênis como brinquedo, relógio e comida como eletrodoméstico.
+#
+# **O que isso diz sobre o ranking.** (1) *A garden tool* é o 4º conceito mais "frequente" (123 imagens) e tem 0 acertos no top-4: a frequência não mede presença. O δ é global (percentil 90 de todas as margens), e a margem sobre o prompt neutro remove o viés **por imagem**, mas não o viés **por conceito**. Conceitos cujo texto fica mais perto da média do corpus ganham ocorrências em massa. A ordem da frequência acompanha o score médio: os 5 primeiros têm score médio entre 0,1963 e 0,2010, e os 5 últimos entre 0,1657 e 0,1778. (2) O CLIP lê texto: 3 das 20 imagens são anúncios só texto, recuperados pela palavra ("Ovens", "Lego", "Swatch"). (3) Há imagens "hub", que aparecem em vários conceitos: a bola de tênis está em *a toy* e *sports equipment*; o bico MAM aparece de novo na busca por perfume (seção 7). Conclusão: o ranking por frequência é um indicador fraco de prevalência real neste corpus. Ele é acima do acaso nos conceitos com objeto visual distintivo (roupa, esporte) e falha em conceitos vagos (*garden tool*).
+#
+# **Imagens pretas.** 2 das 20 células desta grade saem pretas (*a garden tool*, 3ª coluna; *sports equipment*, 4ª coluna), mesmo com `load_rgb` compondo transparência sobre branco. A causa delas não é transparência e segue não identificada (ver relatório, seção de limitações).
 
 # %% [markdown]
 # ## 7. Busca semântica texto→imagem — **Rubrica 4.3**
@@ -534,11 +548,30 @@ search_df = pd.DataFrame(search_records)
 search_df.to_csv(OUT_DIR / "A2_search_results.csv", index=False)
 
 # %% [markdown]
-# **Análise por consulta.** Cossenos do top-1: *dog* 0,284 · *red sports car* 0,247 · *running shoes* 0,269 · *perfume* 0,262 · *electronics* 0,273 · *family dinner* 0,234 · *love and dating* **0,304** (o maior de todas) · *luxury* 0,255 · *excitement* 0,250 · *trust* 0,248. Como no A1, as consultas abstratas não ficam sistematicamente abaixo das concretas.
+# **Critério de contagem do top-5.** O mesmo da seção 6.2: acerto só quando a imagem mostra claramente um exemplar do pedido. Para consultas abstratas, acerto é uma imagem que usa a convenção visual ou publicitária do tema (esporte radical para "adrenalina", mãos dadas para "confiança"). Tangencial, imagem preta ou duplicata do mesmo item contam como erro. Anúncios só texto contam quando o assunto do anúncio é o pedido.
 #
-# **E, com o cache corrigido, o top-5 agora corresponde ao pedido na maioria das consultas.** *"a photo of a dog"*: 4 das 5 imagens mostram cães de verdade. *"a pair of running shoes"*: anúncio de tênis, foto de tênis, sapatos pretos — 3 de 5. *"electronic devices and gadgets"*: bolsa de gadgets, acessórios automotivos, anúncio de tablets — 3 de 4 (a 4ª é uma piada do Buzz Lightyear sobre "phonies"/celulares). *"an advertisement about love and dating"*: **4 das 5** são sites de namoro de verdade (Match.com, Zoosk, "Senior Dating Site", ícone de coração) — a consulta com o maior cosseno também tem a recuperação mais correta, ao contrário do que a versão anterior (com o bug) mostrava. *"a feeling of luxury and exclusivity"*: resort, cosméticos, canetas de luxo, joalheria, TVs premium — bate com a convenção publicitária de luxo. As consultas mais fracas continuam sendo *"a red sports car"* (carro nenhum, só anúncios de peças automotivas — tema certo, objeto errado) e *"a family having dinner together"* (nenhuma cena de jantar em família).
+# | # | Consulta | Top-1 (cos) | Top-5 (o que aparece) | Acertos |
+# |---|---|---|---|---|
+# | 1 | a photo of a dog | 0,284 | cão ✔ · cão de pelo em cordões (komondor) ✔ · meme com cão ao volante ✔ · rato-toupeira-pelado ✘ · cão ✔ | **4/5** |
+# | 2 | a red sports car | 0,247 | anúncio-texto de peças de carro ✘ · meme do cão ao volante ✘ · pandeiro vermelho ✘ · aspirador automotivo ✘ · anúncio-texto de peças ✘ | **0/5** |
+# | 3 | a pair of running shoes | 0,269 | anúncio-texto da Zappos (só texto, cita "Running Shoes") ✘ · anúncio de tênis Adivon ✔ · tênis pretos ✔ · fraldas/embrulhos ✘ · vespa sobre fundo rosa ✘ | **2/5** |
+# | 4 | a bottle of perfume | 0,262 | bico de mamadeira MAM ✘ · anel numa caixa (print do Instagram) ✘ · caixa de preservativos Durex ✘ · pacote de batata Kettle ✘ · anúncio-texto de bálsamo pós-barba L'Occitane ✘ | **0/5** |
+# | 5 | electronic devices and gadgets | 0,273 | anúncio-texto "Baby Gadgets" (produtos de bebê) ✘ · meme do Buzz Lightyear "Phonies" ✘ · carteira de couro com pernas desenhadas ✘ · logotipo de acessórios automotivos (inclui som Kenwood, tangencial) ✘ · anúncio de tablets ✔ | **1/5** |
+# | 6 | a family having dinner together | 0,233 | carne assada num prato, sem pessoas ✘ · imagem preta ✘ · porcos ✘ · grupo de amigos jovens, sem refeição ✘ · sapos ✘ | **0/5** |
+# | 7 | an advertisement about love and dating | 0,304 | casal se beijando ("Online Dating Tips") ✔ · Match.com ✔ · Zoosk ✔ · Senior Dating Site ✔ · coração de app de namoro ✔ | **5/5** |
+# | 8 | a feeling of luxury and exclusivity | 0,255 | resort com piscina ✔ · sabonete Dove (produto de massa) ✘ · anúncio-texto "Luxury Pens" ✔ · anúncio-texto de joalheria ✔ · anúncio-texto "Finest TVs From LG" ✘ | **3/5** |
+# | 9 | excitement and adrenaline | 0,250 | salto de wakeboard ✔ · meme de iguana gritando "HAAAAH" (tangencial) ✘ · cavalo galopando (tangencial) ✘ · moto de motocross na lama ✔ · faixa de Lego ✘ | **2/5** |
+# | 10 | trust and reliability | 0,248 | mãos dadas ✔ · pedra com moedas douradas ✘ · pôster "believe in yourself" ✘ · janela com chuva e citação ✘ · a mesma imagem de novo (duplicata no corpus, cos 0,238 idêntico) ✘ | **1/5** |
 #
-# **Conclusão revisada.** A leitura anterior deste notebook ("CLIP tem desempenho fraco neste corpus") estava **errada, e a causa era um bug**: o cache de embeddings de uma execução anterior (com um bug diferente, já corrigido, na montagem do corpus) foi reaproveitado sem invalidação, então as imagens que apareciam nas figuras não eram as mesmas que geraram os embeddings comparados. Com o cache corrigido (chaveado por um fingerprint do corpus) e a extração do embedding verificada contra o forward cru do `CLIPModel`, o CLIP pré-treinado **recupera corretamente** a maioria das consultas neste corpus de anúncios e preferências de usuários — nem perfeito, nem aleatório: um resultado positivo moderado, coerente com o zero-shot de 55,8% da seção 5. A lição metodológica fica registrada em `docs/decisoes.md`.
+# **Total: 18 de 50 (36%).** Só 2 das 10 consultas têm ≥4/5 (cão e namoro). As 6 concretas somam 7/30; as 4 abstratas, 11/20.
+#
+# **As 3 consultas sem análise na versão anterior.** *"a bottle of perfume"* (0/5): nenhum perfume. O top-1 é o bico de mamadeira MAM, que tem forma de frasco. O resto é embalagem pequena de consumo (preservativos, batata, bálsamo): o CLIP pegou "frasco/embalagem de produto", não "perfume". O cosseno do top-1 (0,262) é o 5º maior das 10 consultas, com zero acertos. *"excitement and adrenaline"* (2/5): wakeboard e motocross são a convenção publicitária de adrenalina. O meme da iguana gritando e o cavalo galopando pegam "emoção/movimento" sem ser adrenalina. A faixa de Lego é erro. *"trust and reliability"* (1/5): só as mãos dadas usam a convenção visual de confiança. O pôster "believe in yourself" e a citação sobre a chuva são proximidade lexical (crença, frase motivacional), não confiança. As posições 4 e 5 são a **mesma imagem**, presente duas vezes no corpus com caminhos diferentes (provavelmente marcada por dois usuários): a amostragem por usuário não deduplica por conteúdo.
+#
+# **Leitura das 7 restantes.** *Cão* (4/5) é o caso fácil: objeto visual distintivo e frequente em fotos pessoais. *Namoro* (5/5) acerta por outro caminho: 3 dos 5 são anúncios só texto, recuperados porque o CLIP lê "Dating Site" na imagem. *Luxo* (3/5) também é puxado por texto (2 dos 3 acertos são anúncios-texto com "Luxury" ou joalheria). *"a red sports car"* (0/5) mostra a consulta decomposta em pedaços: "car" traz peças e aspirador automotivo, "red" traz um pandeiro vermelho. Não dá para saber se existe um carro esportivo vermelho no corpus (não há anotação), então 0/5 pode ser ausência, não só falha. *"a family having dinner together"* (0/5) é composicional: aparecem comida (carne assada) e pessoas juntas (grupo de amigos), mas nunca as duas na mesma cena. *Eletrônicos* (1/5) é puxado pela palavra "Gadgets" num anúncio de bebê e pela piada "Phonies" (de *phones*).
+#
+# **Cosseno do top-1 não prediz acerto.** A faixa é estreita (0,233 a 0,304). Os extremos batem (namoro 0,304 → 5/5; família 0,233 → 0/5), mas no meio não: eletrônicos (0,273) tem 1/5 e perfume (0,262) tem 0/5, abaixo de luxo (0,255, 3/5). As consultas abstratas não ficam abaixo das concretas: em cosseno, 3 das 4 estão na metade de baixo, mas em acertos (11/20) superam as concretas (7/30). O corpus é de anúncios, e as consultas abstratas batem com convenções publicitárias e com texto impresso nas peças.
+#
+# **Conclusão revisada.** A leitura original ("CLIP tem desempenho fraco neste corpus", 0 acertos) era causada pelo bug do cache desalinhado. Corrigido, o CLIP recupera **acima do acaso, mas de forma irregular**: 18/50 na busca e 6/20 no top-4 dos conceitos. Funciona quando há objeto visual distintivo (cão, bola, mesa de pingue-pongue) ou quando o anúncio escreve o assunto (namoro, luxo). Falha em objeto + atributo (*red sports car*), em cena composicional (*family dinner*) e em conceitos vagos (*garden tool*). É coerente com o zero-shot de 55,8% da seção 5: bem acima de 5%, longe de confiável. A frase anterior ("recupera corretamente a maioria das consultas") não se sustenta com a recontagem estrita.
 
 # %% [markdown]
 # ## 8. Consulta textual do CLIP vs. tokenização do BERT — **Rubrica 4.4**
@@ -617,10 +650,10 @@ print(diff_bert.tolist(), "(esperado grande na frase 2, que tem mais PADs)")
 # | Comprimento máx. | 77 | 512 (aula usa 64/128) |
 # | Atenção | **causal** (cada token só vê os anteriores) | **bidirecional** |
 # | Vetor da sequência | estado no **EOT** → `text_projection` → L2-norm | estado do **`[CLS]`** (+ pooler) |
-# | Papel do padding | `pad_token` = o próprio `<\|endoftext\|>`; como a atenção é causal e o vetor sai do EOT, tokens depois dele **não influenciam** o resultado — medido acima: diferença ~1e-6 entre padding dinâmico e `max_length=77` | `attention_mask=0` nos `[PAD]` é **essencial**: atenção bidirecional faria o `[CLS]` atender aos PADs e mudar a representação — medido acima: diferença grande no `[CLS]` da frase mais curta quando a máscara ignora o padding |
+# | Papel do padding | `pad_token` = o próprio `<\|endoftext\|>`; como a atenção é causal e o vetor sai do EOT, tokens depois dele **não influenciam** o resultado — medido acima: diferença de 1,49×10⁻⁷ entre padding dinâmico e `max_length=77` (ruído de ponto flutuante, formas de matriz diferentes) e **exatamente 0,0** entre máscara correta e máscara toda 1 no mesmo input | `attention_mask=0` nos `[PAD]` é **essencial**: atenção bidirecional faria o `[CLS]` atender aos PADs e mudar a representação — medido acima: diferença grande no `[CLS]` da frase mais curta quando a máscara ignora o padding |
 # | Segmentos | não há | `token_type_ids` (Segment Embeddings A/B) |
 #
-# Em suma: os dois tokenizam o texto e usam um token especial para representar a sequência inteira, mas o CLIP tolera padding "de graça" por causa da atenção causal + leitura no EOT, enquanto o BERT depende ativamente da `attention_mask` para que o `[CLS]` não seja contaminado pelos PADs — a diferença medida acima é a evidência direta disso.
+# Em suma: os dois tokenizam o texto e usam um token especial para representar a sequência inteira, mas o CLIP tolera padding "de graça" por causa da atenção causal + leitura no EOT, enquanto o BERT depende ativamente da `attention_mask` para que o `[CLS]` não seja contaminado pelos PADs. A evidência direta: zerar ou não a máscara dos PADs muda o embedding do CLIP em **0,0** (bit a bit igual: com máscara causal, a linha do EOT nunca atende às posições depois dele, então a máscara dos PADs não entra no cálculo), e muda o `[CLS]` do BERT em até **5,42**.
 
 # %% [markdown]
 # ## 9. (Opcional) Projeção 2D dos embeddings de imagem
