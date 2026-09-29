@@ -1334,7 +1334,7 @@ print(f"Real vs sintético (COVID, Run B): AUC regressão logística {CONTROL['a
 # **Estatística.** Para cada nível: média ± desvio-padrão das 3 seeds. Para o efeito dos sintéticos, a comparação é **pareada por seed** (mesma seed com e sem sintéticos): diferença média do recall de COVID com IC de 95% pela t de Student (gl = 2, portanto largo) e, em cada seed, o **teste de McNemar exato** nas 200 COVID do teste (discordantes: acertou sem sintéticos e errou com, e vice-versa).
 
 # %%
-GAN_TAG = f"{RUN_B['name']}@{GAN[RUN_B['name']]['result']['best_epoch']}:{float(sum(p.double().sum() for p in G_AUG.parameters())):.6f}"
+GAN_TAG = f"{RUN_B['name']}@{GAN[RUN_B['name']]['result']['best_epoch']}:{float(sum(p.double().sum() for p in G_AUG.parameters()).detach()):.6f}"
 t0 = time.time()
 SWEEP = []
 for mult in SWEEP_MULTIPLIERS:
