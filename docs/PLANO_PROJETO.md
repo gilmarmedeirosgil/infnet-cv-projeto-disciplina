@@ -252,15 +252,15 @@ Pelo menos 4 problemas, cada um com **impacto operacional** e **como abordaria**
 ---
 
 ### Etapa 6: relatório, revisão e entrega
-- [ ] `relatorio/relatorio.md`, documento único. Para cada atividade: **definição do problema, decisões técnicas e justificativa, resultados (métricas e gráficos), análise crítica**. Incluir:
+- [x] `relatorio/relatorio.md`, documento único (665 linhas). Para cada atividade: **definição do problema, decisões técnicas e justificativa, resultados (métricas e gráficos), análise crítica**. Inclui:
   - Introdução, com o link do repo GitHub e o ambiente (Colab T4).
   - A1, A2, A3, A4.1, A4.2 (a A4.2 só aparece aqui).
-  - Seção **"Uso de ferramentas de IA"** (obrigatória pelo enunciado): o que foi assistido, como foi verificado.
-  - Referências (Dumakude & Ezugwu 2023; Dosovitskiy et al. 2021 ViT; Touvron et al. 2021 DeiT; Liu et al. 2021 Swin; Radford et al. 2021 CLIP; Mirza & Osindero 2014 cGAN; Devlin et al. 2019 BERT; Song & Yan 2013 NEU).
-- [ ] Gerar o PDF: `pandoc relatorio/relatorio.md -o entregas/gilmar_medeiros_deep-learning-and-vision_computer-vision.pdf` (definir o engine e o template na etapa).
-- [ ] **Revisão final pela rubrica**: percorrer os 26 itens da seção 4 e confirmar a evidência de cada um no notebook ou no relatório.
-- [ ] Confirmar que os 4 notebooks em `entregas/` estão **executados**, com outputs, e têm o cabeçalho de memória e tempo.
-- [ ] Gerar o ZIP `entregas/gilmar_medeiros_visao-computacional-cnns-transformers_pd.zip` (4 notebooks + PDF) e postar no Moodle (Gilmar).
+  - Seção **"Uso de ferramentas de IA"** consolidada (além da subseção própria de cada atividade).
+  - Referências consolidadas e deduplicadas (todas as 8 exigidas — Dumakude & Ezugwu 2023, Dosovitskiy et al. 2021 ViT, Touvron et al. 2021 DeiT, Liu et al. 2021 Swin, Radford et al. 2021 CLIP, Mirza & Osindero 2014 cGAN, Devlin et al. 2019 BERT, Song & Yan 2013 NEU — mais todas as demais já citadas por atividade).
+- [x] Gerar o PDF: sem motor LaTeX disponível localmente, usado `pandoc` → HTML autocontido (imagens embutidas) → **`weasyprint`** (instalado no `.venv`) → PDF. Matemática em `$...$` convertida para texto simples/Unicode antes da conversão (o MathML do pandoc não renderiza no weasyprint — saía duplicado/cru; corrigido e conferido visualmente, 60 páginas, `entregas/gilmar_medeiros_deep-learning-and-vision_computer-vision.pdf`).
+- [x] **Revisão final pela rubrica**: os 26 itens da seção 4 estão todos ✅, com evidência (notebook/célula ou seção do relatório) e, para os itens investigados a fundo (2.4, 3.6, 4.2–4.4, 5.3), uma nota do que foi verificado.
+- [x] Confirmar que os 4 notebooks em `entregas/` estão **executados**, com outputs, e têm o cabeçalho de memória e tempo (A1 33/67, A2 23/41, A3 27/49, A4.1 30/62 células com output).
+- [x] Gerar o ZIP `entregas/gilmar_medeiros_visao-computacional-cnns-transformers_pd.zip` (4 notebooks + PDF, ~35 MB) — falta só postar no Moodle (Gilmar).
 
 **Gate 6**: o Gilmar revisa o PDF e o ZIP antes do envio.
 
@@ -275,27 +275,27 @@ Pelo menos 4 problemas, cada um com **impacto operacional** e **como abordaria**
 | 1.3 | CNN transfer learning | ≥3 estratégias de augmentation com justificativa para o domínio | A3 §3.2 | ✅ |
 | 1.4 | CNN transfer learning | Quando usar feature extraction vs. fine-tuning (tamanho e domínio) | A3 + relatório | ✅ |
 | 1.5 | CNN transfer learning | Escolha do modelo justificada (T4, nº de classes) | A3 | ✅ |
-| 2.1 | Transformer | SDPA e MHA do zero, testáveis, com projeções por head e concatenação | A1 2b | ☐ |
-| 2.2 | Transformer | Heatmap de atenção de ≥1 exemplo do domínio + interpretação escrita | A1 2c/2e | ☐ |
-| 2.3 | Transformer | TransformerEncoderBlock completo (MLP 2 camadas, LayerNorm, residual) como base do ViT | A1 2b | ☐ |
-| 2.4 | Transformer | PE aplicado aos tokens + explicação de por que a atenção sem PE não preserva a posição | A1 2b | ☐ |
-| 2.5 | Transformer | Pré-treinamento do BERT vs. do ViT: o que cada um maximiza | A1 2e + relatório | ☐ |
-| 3.1 | ViT | Patch embedding, CLS aprendível, PE → ViT completo que retorna logits | A1 2b | ☐ |
-| 3.2 | ViT | ViT do zero treinado, mapas de atenção de ≥1 head, regiões emergentes por escrito | A1 2c | ☐ |
-| 3.3 | ViT | Fine-tuning de ViT pré-treinado com head trocado, comparado com o ViT do zero em tabela | A1 2d/2e | ☐ |
-| 3.4 | ViT | DeiT e Swin: o que resolvem que o ViT não resolve | A1 2e + relatório | ☐ |
-| 3.5 | ViT | Quando ViT supera CNN e quando CNN é preferível, no domínio | A1 2e + relatório | ☐ |
-| 3.6 | ViT | Tabela ViT do zero vs. pré-treinado + escolha de arquitetura baseada nos dados | A1 2e | ☐ |
-| 4.1 | CLIP | Alinhamento visual-textual; por que o contrastivo habilita recuperação sem supervisão | A2 + relatório | ☐ |
-| 4.2 | CLIP | Ranking por frequência semântica, ≥20 descrições, top-5 com exemplos | A2 2.1 | ☐ |
-| 4.3 | CLIP | Busca semântica com ≥8 consultas variadas, documentadas e analisadas | A2 2.2 | ☐ |
-| 4.4 | CLIP | Consulta textual do CLIP vs. tokenização do BERT; padding e attention mask | A2 + relatório | ☐ |
-| 5.1 | GANs / casos | ≥5 problemas do projeto de raio-X com impacto clínico | A4 3a + relatório | ☐ |
-| 5.2 | GANs / casos | GAN (cGAN) implementada com loop adversarial correto | A4 3d | ☐ |
-| 5.3 | GANs / casos | Instabilidade diagnosticada (mode collapse/divergência) + mitigação com evidência | A4 3d | ☐ |
-| 5.4 | GANs / casos | Impacto dos sintéticos no recall de COVID (com vs. sem) | A4 3e | ☐ |
-| 5.5 | GANs / casos | ≥4 problemas do projeto de tráfego + riscos do TL ImageNet → fluxo | Relatório A4.2 | ☐ |
-| 5.6 | GANs / casos | Plano integrado para o raio-X: modelo, métrica, sintéticos, critério de adoção clínica | A4 3e + relatório | ☐ |
+| 2.1 | Transformer | SDPA e MHA do zero, testáveis, com projeções por head e concatenação | A1 2b | ✅ |
+| 2.2 | Transformer | Heatmap de atenção de ≥1 exemplo do domínio + interpretação escrita | A1 2c/2e | ✅ |
+| 2.3 | Transformer | TransformerEncoderBlock completo (MLP 2 camadas, LayerNorm, residual) como base do ViT | A1 2b | ✅ |
+| 2.4 | Transformer | PE aplicado aos tokens + explicação de por que a atenção sem PE não preserva a posição | A1 2b | ✅ (Gate 2, termo "simetria de permutação" corrigido) |
+| 2.5 | Transformer | Pré-treinamento do BERT vs. do ViT: o que cada um maximiza | A1 2e + relatório | ✅ |
+| 3.1 | ViT | Patch embedding, CLS aprendível, PE → ViT completo que retorna logits | A1 2b | ✅ |
+| 3.2 | ViT | ViT do zero treinado, mapas de atenção de ≥1 head, regiões emergentes por escrito | A1 2c | ✅ |
+| 3.3 | ViT | Fine-tuning de ViT pré-treinado com head trocado, comparado com o ViT do zero em tabela | A1 2d/2e | ✅ |
+| 3.4 | ViT | DeiT e Swin: o que resolvem que o ViT não resolve | A1 2e + relatório | ✅ |
+| 3.5 | ViT | Quando ViT supera CNN e quando CNN é preferível, no domínio | A1 2e + relatório | ✅ |
+| 3.6 | ViT | Tabela ViT do zero vs. pré-treinado + escolha de arquitetura baseada nos dados | A1 2e | ✅ (Gate 2 aprovado; 100% de ViT-B/16/ResNet-18 investigado por vazamento e descartado, ver `docs/decisoes.md`) |
+| 4.1 | CLIP | Alinhamento visual-textual; por que o contrastivo habilita recuperação sem supervisão | A2 + relatório | ✅ |
+| 4.2 | CLIP | Ranking por frequência semântica, ≥20 descrições, top-5 com exemplos | A2 2.1 | ✅ (Gate 4; recontagem estrita 6/20, critério declarado) |
+| 4.3 | CLIP | Busca semântica com ≥8 consultas variadas, documentadas e analisadas | A2 2.2 | ✅ (Gate 4; recontagem estrita 18/50, 10/10 consultas analisadas) |
+| 4.4 | CLIP | Consulta textual do CLIP vs. tokenização do BERT; padding e attention mask | A2 + relatório | ✅ (diff exato 0,0 no CLIP vs. até 5,42 no BERT) |
+| 5.1 | GANs / casos | ≥5 problemas do projeto de raio-X com impacto clínico | A4 3a + relatório | ✅ (8 problemas) |
+| 5.2 | GANs / casos | GAN (cGAN) implementada com loop adversarial correto | A4 3d | ✅ |
+| 5.3 | GANs / casos | Instabilidade diagnosticada (mode collapse/divergência) + mitigação com evidência | A4 3d | ✅ (Gate 3; faixas D(x)/D(G(z)) e piso de KID corrigidos) |
+| 5.4 | GANs / casos | Impacto dos sintéticos no recall de COVID (com vs. sem) | A4 3e | ✅ (sintéticos pioram o recall médio, 3 seeds) |
+| 5.5 | GANs / casos | ≥4 problemas do projeto de tráfego + riscos do TL ImageNet → fluxo | Relatório A4.2 | ✅ (Gate 5; 6 problemas, Meegle/Kornblith/Uso de IA corrigidos) |
+| 5.6 | GANs / casos | Plano integrado para o raio-X: modelo, métrica, sintéticos, critério de adoção clínica | A4 3e + relatório | ✅ |
 
 ---
 
