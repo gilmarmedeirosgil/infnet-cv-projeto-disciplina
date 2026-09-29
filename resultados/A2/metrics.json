@@ -1,0 +1,35 @@
+{
+  "modelo": "openai/clip-vit-base-patch32",
+  "n_params_M": 151.3,
+  "logit_scale_exp": 100.0,
+  "corpus": {
+    "total": 650,
+    "ads": 301,
+    "usuarios": 349,
+    "n_usuarios": 120
+  },
+  "threshold": {
+    "criterio": "margem sobre prompt neutro, percentil 90",
+    "delta": 0.007001024205237627
+  },
+  "n_conceitos": 25,
+  "n_consultas": 10,
+  "n_imgs_com_transparencia": 358,
+  "sanity_zero_shot_acc": 0.5581395348837209,
+  "tokenizacao": {
+    "clip_max_len": 77,
+    "diff_clip_padding": 1.4901161193847656e-07,
+    "diff_clip_nomask": 0.0,
+    "diff_bert_mask_maxabs": 5.424578666687012
+  },
+  "ram": {
+    "ram_rss_mb": 2701,
+    "ram_maxrss_mb": 2770
+  },
+  "vram_pico_mb": null,
+  "tempo_total_s": 322.7,
+  "versions": {
+    "torch": "2.11.0+cpu"
+  },
+  "seed": 42
+}

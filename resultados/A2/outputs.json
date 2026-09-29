@@ -1,0 +1,127 @@
+[
+  {
+    "cell": 2,
+    "first_line": "import time",
+    "output": "pip: 18.0s\n"
+  },
+  {
+    "cell": 3,
+    "first_line": "import os, gc, json, time, random, resource",
+    "output": "PyTorch 2.11.0+cpu | transformers | device: cpu\nSem GPU — ok para este notebook: CLIP em inferência pura é leve.\nRAM: {'ram_rss_mb': 2722, 'ram_maxrss_mb': 2753}\n"
+  },
+  {
+    "cell": 4,
+    "first_line": "try:",
+    "output": "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\nArtefatos em: /content/drive/MyDrive/infnet_cv_projeto/outputs/A2\n"
+  },
+  {
+    "cell": 5,
+    "first_line": "def load_kaggle_credentials():",
+    "output": "Secrets carregados: ['KAGGLE_USERNAME', 'KAGGLE_KEY', 'KAGGLE_API_TOKEN']\nUsing Colab cache for faster access to the 'ads16-dataset' dataset.\nADS-16 em: /kaggle/input/ads16-dataset\n"
+  },
+  {
+    "cell": 7,
+    "first_line": "# O ADS-16 vem em duas partes (ADS16_Benchmark_part1/part2), cada uma com metade das categorias",
+    "output": "Ads: 2 parte(s) -> [PosixPath('/kaggle/input/ads16-dataset/ADS16_Benchmark_part1/ADS16_Benchmark_part1/Ads/Ads'), PosixPath('/kaggle/input/ads16-dataset/ADS16_Benchmark_part2/ADS16_Benchmark_part2/Ads/Ads')]\nCorpus (usuários): 2 parte(s) -> [PosixPath('/kaggle/input/ads16-dataset/ADS16_Benchmark_part1/ADS16_Benchmark_part1/Corpus/Corpus'), PosixPath('/kaggle/input/ads16-dataset/ADS16_Benchmark_part2/ADS16_Benchmark_part2/Corpus/Corpus')]\nAnúncios: 301 imagens em 20 categorias (das 20 esperadas)\ncategory\nClothing & Shoes           16\nAutomotive                 15\nBaby Products              15\nHealth & Beauty            15\nMedia (BMVD)               15\nConsumer Electronics       15\nConsole & Video Games      15\nDIY & Tools                15\nGarden & Outdoor living    15\nGrocery                    15\nKitchen & Home             15\nBetting                    15\nJewellery & Watches        15\nMusical Instruments        15\nOffice Products            15\nPet Supplies               15\nComputer Software          15\nSports & Outdoors          15\nToys & Games               15\nDating Sites               15\n"
+  },
+  {
+    "cell": 8,
+    "first_line": "user_records = []",
+    "output": "Imagens de usuários (sem miniaturas): 1223, de 120 usuários (dos 120 esperados)\npref\nPOS    619\nNEG    604\n"
+  },
+  {
+    "cell": 9,
+    "first_line": "# Amostra estratificada por (usuário, pref), para completar o corpus a ~600-700 imagens no total.",
+    "output": "Corpus final: 650 imagens (301 anúncios + 349 de usuários, de 120 usuários, estratificado por usuário × POS/NEG)\n"
+  },
+  {
+    "cell": 10,
+    "first_line": "# fig: samples_grid",
+    "output": "A2_samples_grid.png: 816 KB (dpi 100)\n"
+  },
+  {
+    "cell": 12,
+    "first_line": "MODEL_NAME = \"openai/clip-vit-base-patch32\"",
+    "output": "openai/clip-vit-base-patch32: 151.3 M parâmetros\nvisual_projection: Linear(in_features=768, out_features=512, bias=False)\ntext_projection: Linear(in_features=512, out_features=512, bias=False)\nlogit_scale.exp(): 100.00000762939453\n"
+  },
+  {
+    "cell": 15,
+    "first_line": "def _extract_embed(out):",
+    "output": ""
+  },
+  {
+    "cell": 16,
+    "first_line": "import hashlib",
+    "output": "650 imagens carregadas (358 com transparência, compostas sobre branco)\nFingerprint do corpus: 5e48bcd5fd64ec78\nEmbeddings calculados para 650 imagens em 219.7s\nshape: (650, 512) | norma média: 1.0\n"
+  },
+  {
+    "cell": 17,
+    "first_line": "# Sanidade da extração do embedding (Rubrica 4.2/4.3): confirma que _extract_embed pega o vetor",
+    "output": "OK: _extract_embed(get_image_features) bate com CLIPModel(...).image_embeds (diff=0.0e+00)\nOK: _extract_embed(get_text_features) bate com CLIPModel(...).text_embeds (diff=1.2e-07)\n"
+  },
+  {
+    "cell": 18,
+    "first_line": "# Sanidade extra (barata): zero-shot dos 301 anúncios contra as 20 categorias do próprio ADS-16",
+    "output": "Zero-shot anúncio->categoria (sanidade, não é rubrica): 55.8% de acerto em 301 anúncios contra as 20 categorias do ADS-16 (acaso = 5%)\n"
+  },
+  {
+    "cell": 20,
+    "first_line": "CONCEPTS = [",
+    "output": "concept_embeds: (25, 512)\n"
+  },
+  {
+    "cell": 21,
+    "first_line": "sim_matrix = (image_embeds @ concept_embeds.T).numpy()          # [N_imgs, N_concepts], cosseno bruto",
+    "output": "cosseno: min 0.066 | mediana 0.185 | max 0.315\ncosseno vs prompt neutro: média 0.209 ± 0.012\n"
+  },
+  {
+    "cell": 23,
+    "first_line": "margin = sim_matrix - sim_neutral[:, None]     # [N_imgs, N_concepts]",
+    "output": "delta (percentil 90 da margem): 0.0070\ncombinações (imagem, conceito) marcadas como ocorrência: 1625 de 16250 (10.0%)\n                        conceito  frequência  % do corpus  score médio (cosseno)\n             a kitchen appliance         154         23.7                 0.1994\n                           a toy         145         22.3                 0.2010\n             an item of clothing         126         19.4                 0.2005\n                   a garden tool         123         18.9                 0.1963\n                sports equipment         108         16.6                 0.1968\n               food or groceries          94         14.5                 0.1948\n                          a baby          94         14.5                 0.1906\n                    a smartphone          89         13.7                 0.1958\n         a video game controller          74         11.4                 0.1842\n                    a dog or cat          62          9.5                 0.1785\n                    a power tool          60          9.2                 0.1855\n                       furniture          59          9.1                 0.1876\n               a laptop computer          58          8.9                 0.1811\n              a couple on a date          50          7.7                 0.1860\n            a musical instrument          48          7.4                 0.1860\na bottle of perfume or cosmetics          47          7.2                 0.1783\n                    a wristwatch          36          5.5                 0.1795\n            a piece of jewellery          36          5.5                 0.1779\n                           a car          33          5.1                 0.1834\n                  a wedding ring          29          4.5                 0.1759\n                 a pair of shoes          28          4.3                 0.1762\n                    a motorcycle          20          3.1                 0.1756\n                       a bicycle          19          2.9                 0.1778\n           money or casino chips          19          2.9                 0.1657\n                        a guitar          14          2.2                 0.1691\n"
+  },
+  {
+    "cell": 24,
+    "first_line": "# fig: concept_ranking",
+    "output": "A2_concept_ranking.png: 81 KB (dpi 150)\n"
+  },
+  {
+    "cell": 26,
+    "first_line": "# fig: top5_concepts_grid",
+    "output": "A2_top5_concepts_grid.png: 808 KB (dpi 100)\n"
+  },
+  {
+    "cell": 29,
+    "first_line": "QUERIES = [",
+    "output": ""
+  },
+  {
+    "cell": 30,
+    "first_line": "# fig: search_queries_grid",
+    "output": "A2_search_queries_grid.png: 1191 KB (dpi 80)\n"
+  },
+  {
+    "cell": 33,
+    "first_line": "query_txt = \"a red sports car parked on the street\"",
+    "output": "=== CLIP (BPE) ===\ntokens: ['<|startoftext|>', 'a</w>', 'red</w>', 'sports</w>', 'car</w>', 'parked</w>', 'on</w>', 'the</w>', 'street</w>', '<|endoftext|>']\ninput_ids: [49406, 320, 736, 2054, 1615, 16487, 525, 518, 2012, 49407]\nattention_mask: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]\ncomprimento: 10 (máx. 77)\n\n=== BERT (WordPiece) ===\ntokens: ['[CLS]', 'a', 'red', 'sports', 'car', 'parked', 'on', 'the', 'street', '[SEP]']\ninput_ids: [101, 1037, 2417, 2998, 2482, 9083, 2006, 1996, 2395, 102]\nattention_mask: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]\n"
+  },
+  {
+    "cell": 34,
+    "first_line": "# Padding: o CLIP usa o próprio <|endoftext|> como pad; como a atenção é causal e o vetor vem do EOT,",
+    "output": "CLIP: diferença máx. entre padding dinâmico e padding='max_length' (77), ambos COM attention_mask: 1.49e-07 (esperado ~1e-6)\nCLIP: diferença máx. entre mask correta e mask toda 1 (mesmo input, max_length=77): 0.00e+00 — se pequena como a de cima, confirma que o EOT causal já basta; se grande (como no BERT abaixo), a mask importa tanto quanto no BERT\n"
+  },
+  {
+    "cell": 35,
+    "first_line": "# BERT: zerar a attention_mask dos PADs muda o [CLS]? (atenção bidirecional -> deveria mudar)",
+    "output": "[transformers] \u001b[1mBertModel LOAD REPORT\u001b[0m from: bert-base-uncased\nKey                                        | Status     |  | \n-------------------------------------------+------------+--+-\ncls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | \ncls.seq_relationship.weight                | UNEXPECTED |  | \ncls.predictions.bias                       | UNEXPECTED |  | \ncls.seq_relationship.bias                  | UNEXPECTED |  | \ncls.predictions.transform.dense.weight     | UNEXPECTED |  | \ncls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | \ncls.predictions.transform.dense.bias       | UNEXPECTED |  | \n\nNotes:\n- UNEXPECTED:\tcan be ignored when loading from different task/architecture; not ok if you expect identical arch.\nBERT: diferença máx. no [CLS] da frase curta (mais padding) — mask correta vs mask toda 1:\n[0.0, 5.424578666687012] (esperado grande na frase 2, que tem mais PADs)\n"
+  },
+  {
+    "cell": 38,
+    "first_line": "from sklearn.manifold import TSNE",
+    "output": "A2_tsne_embeddings.png: 169 KB (dpi 150)\n"
+  },
+  {
+    "cell": 40,
+    "first_line": "metrics = {",
+    "output": "{\n  \"modelo\": \"openai/clip-vit-base-patch32\",\n  \"n_params_M\": 151.3,\n  \"logit_scale_exp\": 100.0,\n  \"corpus\": {\n    \"total\": 650,\n    \"ads\": 301,\n    \"usuarios\": 349,\n    \"n_usuarios\": 120\n  },\n  \"threshold\": {\n    \"criterio\": \"margem sobre prompt neutro, percentil 90\",\n    \"delta\": 0.007001024205237627\n  },\n  \"n_conceitos\": 25,\n  \"n_consultas\": 10,\n  \"n_imgs_com_transparencia\": 358,\n  \"sanity_zero_shot_acc\": 0.5581395348837209,\n  \"tokenizacao\": {\n    \"clip_max_len\": 77,\n    \"diff_clip_padding\": 1.4901161193847656e-07,\n    \"diff_clip_nomask\": 0.0,\n    \"diff_bert_mask_maxabs\": 5.424578666687012\n  },\n  \"ram\": {\n    \"ram_rss_mb\": 2701,\n    \"ram_maxrss_mb\": 2770\n  },\n  \"vram_pico_mb\": null,\n  \"tempo_total_s\": 322.7,\n  \"versions\": {\n    \"torch\": \"2.11.0+cpu\"\n  },\n  \"seed\": 42\n}\n"
+  }
+]

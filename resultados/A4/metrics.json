@@ -1,0 +1,1460 @@
+{
+  "activity": "A4.1",
+  "dataset": "tawsifurrahman/covid19-radiography-database (COVID, Normal, Viral Pneumonia; Lung_Opacity ignorada)",
+  "classes": [
+    "COVID",
+    "Normal",
+    "Pneumonia"
+  ],
+  "data": {
+    "files_per_class": {
+      "COVID": 3616,
+      "Normal": 10192,
+      "Pneumonia": 1345
+    },
+    "unique_md5_per_class": {
+      "COVID": 3570,
+      "Normal": 10191,
+      "Pneumonia": 1338
+    },
+    "exact_duplicates": 54,
+    "md5_cross_class": 0,
+    "phash_threshold": 4,
+    "phash_rejections": 31,
+    "phash_rejections_by_class": {
+      "COVID": 18,
+      "Normal": 13
+    },
+    "phash_rejections_cross_class": 4,
+    "partitions": {
+      "stratified": {
+        "train": {
+          "COVID": 96,
+          "Normal": 672,
+          "Pneumonia": 192
+        },
+        "val": {
+          "COVID": 24,
+          "Normal": 168,
+          "Pneumonia": 48
+        }
+      },
+      "random_baseline": {
+        "train": {
+          "COVID": 98,
+          "Normal": 666,
+          "Pneumonia": 196
+        },
+        "val": {
+          "COVID": 22,
+          "Normal": 174,
+          "Pneumonia": 44
+        }
+      },
+      "test": {
+        "COVID": 200,
+        "Normal": 200,
+        "Pneumonia": 200
+      },
+      "ref": {
+        "COVID": 300,
+        "Normal": 300,
+        "Pneumonia": 300
+      }
+    },
+    "image_size": 64,
+    "classifier_input": 224,
+    "sources_dev_test": {
+      "COVID": {
+        "bimcv.cipf.es/bimcv-projects/bimcv-covid19": 217,
+        "eurorad.org": 23,
+        "github.com/armiro/COVID-CXNet": 43,
+        "github.com/ieee8023/covid-chestxray-dataset": 17,
+        "github.com/ml-workgroup/covid-19-image-repository": 12,
+        "sirm.org/category/senza-categoria": 8
+      },
+      "Normal": {
+        "kaggle.com/c/rsna-pneumonia-detection-challenge": 893,
+        "kaggle.com/paultimothymooney/chest-xray-pneumonia": 147
+      },
+      "Pneumonia": {
+        "kaggle.com/paultimothymooney/chest-xray-pneumonia": 440
+      }
+    },
+    "brightness_dev": {
+      "COVID": {
+        "mean": 139.7,
+        "std": 26.7
+      },
+      "Normal": {
+        "mean": 129.8,
+        "std": 22.3
+      },
+      "Pneumonia": {
+        "mean": 127.9,
+        "std": 18.4
+      }
+    },
+    "patient_id_available": false
+  },
+  "accuracy_paradox_all_normal": {
+    "dev_accuracy": 70.0,
+    "test_balanced_accuracy": 33.333333333333336,
+    "covid_recall": 0.0
+  },
+  "baseline_group": {
+    "name": "baseline_group",
+    "seed": 42,
+    "split": "random",
+    "config": {
+      "pretrained": false,
+      "optimizer": "sgd",
+      "lr": 0.01,
+      "momentum": 0.9,
+      "weight_decay": 0.0,
+      "epochs": 15,
+      "batch_size": 32,
+      "augment": false,
+      "class_weights": false,
+      "scheduler": null,
+      "warmup_epochs": 0,
+      "select": "last",
+      "patience": null
+    },
+    "n_train_real": 960,
+    "n_synthetic": 0,
+    "train_class_counts": {
+      "COVID": 98,
+      "Normal": 666,
+      "Pneumonia": 196
+    },
+    "class_weights": null,
+    "best_epoch": 15,
+    "epochs_run": 15,
+    "train_real_accuracy": 100.0,
+    "val": {
+      "accuracy": 89.58333333333334,
+      "macro_f1": 0.7172368483229906,
+      "precision": {
+        "COVID": 0.8,
+        "Normal": 0.8947368421052632,
+        "Pneumonia": 0.9111111111111111
+      },
+      "recall": {
+        "COVID": 0.18181818181818182,
+        "Normal": 0.9770114942528736,
+        "Pneumonia": 0.9318181818181818
+      },
+      "f1": {
+        "COVID": 0.2962962962962963,
+        "Normal": 0.9340659340659341,
+        "Pneumonia": 0.9213483146067416
+      },
+      "support": {
+        "COVID": 22,
+        "Normal": 174,
+        "Pneumonia": 44
+      },
+      "confusion_matrix": [
+        [
+          4,
+          17,
+          1
+        ],
+        [
+          1,
+          170,
+          3
+        ],
+        [
+          0,
+          3,
+          41
+        ]
+      ],
+      "covid_recall": 0.18181818181818182,
+      "covid_recall_ci95": [
+        0.07306766024105121,
+        0.38517021976637866
+      ],
+      "covid_tp": 4,
+      "covid_fn": 18,
+      "covid_specificity": 0.9954128440366973,
+      "covid_ppv_at_prev10": 0.8149532710280383,
+      "prevalence_weighted_accuracy": 88.8453500522466,
+      "pred_distribution": {
+        "COVID": 5,
+        "Normal": 190,
+        "Pneumonia": 45
+      },
+      "covid_auc": 0.932443703085905,
+      "loss": 0.40166187286376953
+    },
+    "test": {
+      "accuracy": 70.5,
+      "macro_f1": 0.665042719971249,
+      "precision": {
+        "COVID": 0.9215686274509803,
+        "Normal": 0.5518207282913166,
+        "Pneumonia": 0.9322916666666666
+      },
+      "recall": {
+        "COVID": 0.235,
+        "Normal": 0.985,
+        "Pneumonia": 0.895
+      },
+      "f1": {
+        "COVID": 0.3745019920318725,
+        "Normal": 0.7073608617594255,
+        "Pneumonia": 0.9132653061224489
+      },
+      "support": {
+        "COVID": 200,
+        "Normal": 200,
+        "Pneumonia": 200
+      },
+      "confusion_matrix": [
+        [
+          47,
+          140,
+          13
+        ],
+        [
+          3,
+          197,
+          0
+        ],
+        [
+          1,
+          20,
+          179
+        ]
+      ],
+      "covid_recall": 0.235,
+      "covid_recall_ci95": [
+        0.18157345326946356,
+        0.29841492986724655
+      ],
+      "covid_tp": 47,
+      "covid_fn": 153,
+      "covid_specificity": 0.99,
+      "covid_ppv_at_prev10": 0.723076923076923,
+      "prevalence_weighted_accuracy": 89.2,
+      "pred_distribution": {
+        "COVID": 51,
+        "Normal": 357,
+        "Pneumonia": 192
+      },
+      "covid_auc": 0.8924500000000001,
+      "loss": 1.480931043624878
+    },
+    "train_time_s": 16.8,
+    "peak_vram_mb": 1260,
+    "peak_vram_reserved_mb": 2542,
+    "gan_tag": null,
+    "history_last": {
+      "epoch": 15,
+      "lr": 0.01,
+      "train_loss": 0.02459938460184882,
+      "train_acc": 99.0625,
+      "val_loss": 0.40166187286376953,
+      "val_acc": 89.58333333333334,
+      "val_macro_f1": 0.7172368483229906,
+      "val_covid_recall": 0.18181818181818182
+    }
+  },
+  "corrected": {
+    "name": "sweep_m0_s42",
+    "seed": 42,
+    "split": "stratified",
+    "config": {
+      "pretrained": true,
+      "optimizer": "adamw",
+      "lr": 0.0003,
+      "momentum": null,
+      "weight_decay": 0.05,
+      "epochs": 25,
+      "batch_size": 64,
+      "augment": true,
+      "class_weights": true,
+      "scheduler": "cosine",
+      "warmup_epochs": 1,
+      "select": "val_macro_f1",
+      "patience": 7
+    },
+    "n_train_real": 960,
+    "n_synthetic": 0,
+    "train_class_counts": {
+      "COVID": 96,
+      "Normal": 672,
+      "Pneumonia": 192
+    },
+    "class_weights": [
+      3.3333,
+      0.4762,
+      1.6667
+    ],
+    "best_epoch": 15,
+    "epochs_run": 22,
+    "train_real_accuracy": 100.0,
+    "val": {
+      "accuracy": 95.41666666666667,
+      "macro_f1": 0.9152916304366358,
+      "precision": {
+        "COVID": 0.9444444444444444,
+        "Normal": 0.9485714285714286,
+        "Pneumonia": 0.9787234042553191
+      },
+      "recall": {
+        "COVID": 0.7083333333333334,
+        "Normal": 0.9880952380952381,
+        "Pneumonia": 0.9583333333333334
+      },
+      "f1": {
+        "COVID": 0.8095238095238095,
+        "Normal": 0.967930029154519,
+        "Pneumonia": 0.968421052631579
+      },
+      "support": {
+        "COVID": 24,
+        "Normal": 168,
+        "Pneumonia": 48
+      },
+      "confusion_matrix": [
+        [
+          17,
+          7,
+          0
+        ],
+        [
+          1,
+          166,
+          1
+        ],
+        [
+          0,
+          2,
+          46
+        ]
+      ],
+      "covid_recall": 0.7083333333333334,
+      "covid_recall_ci95": [
+        0.508319363412903,
+        0.8508553966583573
+      ],
+      "covid_tp": 17,
+      "covid_fn": 7,
+      "covid_specificity": 0.9953703703703703,
+      "covid_ppv_at_prev10": 0.9444444444444443,
+      "prevalence_weighted_accuracy": 95.41666666666666,
+      "pred_distribution": {
+        "COVID": 18,
+        "Normal": 175,
+        "Pneumonia": 47
+      },
+      "covid_auc": 0.9612268518518519,
+      "loss": 0.1948736608028412
+    },
+    "test": {
+      "accuracy": 87.5,
+      "macro_f1": 0.8735079707243686,
+      "precision": {
+        "COVID": 1.0,
+        "Normal": 0.7343173431734318,
+        "Pneumonia": 0.9845360824742269
+      },
+      "recall": {
+        "COVID": 0.675,
+        "Normal": 0.995,
+        "Pneumonia": 0.955
+      },
+      "f1": {
+        "COVID": 0.8059701492537313,
+        "Normal": 0.8450106157112527,
+        "Pneumonia": 0.9695431472081218
+      },
+      "support": {
+        "COVID": 200,
+        "Normal": 200,
+        "Pneumonia": 200
+      },
+      "confusion_matrix": [
+        [
+          135,
+          63,
+          2
+        ],
+        [
+          0,
+          199,
+          1
+        ],
+        [
+          0,
+          9,
+          191
+        ]
+      ],
+      "covid_recall": 0.675,
+      "covid_recall_ci95": [
+        0.6073185684304498,
+        0.736085329498138
+      ],
+      "covid_tp": 135,
+      "covid_fn": 65,
+      "covid_specificity": 1.0,
+      "covid_ppv_at_prev10": 1.0,
+      "prevalence_weighted_accuracy": 95.5,
+      "pred_distribution": {
+        "COVID": 135,
+        "Normal": 271,
+        "Pneumonia": 194
+      },
+      "covid_auc": 0.9789874999999999,
+      "loss": 0.4212528169155121
+    },
+    "train_time_s": 22.7,
+    "peak_vram_mb": 1409,
+    "peak_vram_reserved_mb": 3078,
+    "gan_tag": null,
+    "history_last": {
+      "epoch": 22,
+      "lr": 1.430388942207392e-05,
+      "train_loss": 0.003255855090295275,
+      "train_acc": 99.89583333333333,
+      "val_loss": 0.19997815787792206,
+      "val_acc": 95.0,
+      "val_macro_f1": 0.904675045526465,
+      "val_covid_recall": 0.6666666666666666
+    }
+  },
+  "gan": {
+    "common_config": {
+      "nz": 100,
+      "embed_dim": 16,
+      "ngf": 64,
+      "ndf": 64,
+      "batch_size": 64,
+      "epochs": 250,
+      "betas": [
+        0.5,
+        0.999
+      ],
+      "class_balance_alpha": 0.5,
+      "eval_epochs_every": 25,
+      "ckpt_every": 50,
+      "n_eval": 300,
+      "n_fixed": 8
+    },
+    "feature_extractor": "InceptionV3 (torch-fidelity, pool3 2048-d)",
+    "lpips": "LPIPS AlexNet (torchmetrics, 128 px)",
+    "real_diversity_covid": {
+      "lpips": 0.4054475873708725,
+      "pixel": 0.2616010010242462
+    },
+    "kid_floor_train_vs_ref": [
+      -0.00034200373456800827,
+      0.001190268038383737
+    ],
+    "runs": {
+      "runA_naive": {
+        "config": {
+          "name": "runA_naive",
+          "label": "Run A (ingênua)",
+          "spectral_norm": false,
+          "d_batchnorm": true,
+          "real_label": 1.0,
+          "lr_d": 0.0002,
+          "lr_g": 0.0002,
+          "diffaug": false
+        },
+        "train_time_s": 87.9,
+        "iterations": 3750,
+        "best_kid_epoch": 150,
+        "peak_vram_mb": 3230,
+        "peak_vram_reserved_mb": 4166,
+        "final_epoch": {
+          "epoch": 250.0,
+          "loss_D": 0.4139,
+          "loss_G": 4.3955,
+          "D_x": 0.8466,
+          "D_G_z1": 0.1693,
+          "D_G_z2": 0.0356,
+          "nonfinite_iters": 0.0
+        },
+        "frac_epochs_D_G_z_below_0.05": 0.0,
+        "frac_epochs_loss_D_below_0.1": 0.0,
+        "max_loss_G": 4.884,
+        "nonfinite_iters": 0,
+        "evals": [
+          {
+            "epoch": 1.0,
+            "kid_covid": 0.87493,
+            "kid_covid_std": 0.01336,
+            "lpips_div_covid": 0.04449,
+            "pixel_div_covid": 0.01592,
+            "D_real_train": 0.75421,
+            "D_real_ref": 0.79516,
+            "D_overfit_gap": -0.04095
+          },
+          {
+            "epoch": 5.0,
+            "kid_covid": 0.50555,
+            "kid_covid_std": 0.01203,
+            "lpips_div_covid": 0.07371,
+            "pixel_div_covid": 0.06818,
+            "D_real_train": 0.1138,
+            "D_real_ref": 0.18431,
+            "D_overfit_gap": -0.07051
+          },
+          {
+            "epoch": 10.0,
+            "kid_covid": 0.45389,
+            "kid_covid_std": 0.01107,
+            "lpips_div_covid": 0.15179,
+            "pixel_div_covid": 0.1688,
+            "D_real_train": 0.55514,
+            "D_real_ref": 0.55598,
+            "D_overfit_gap": -0.00084
+          },
+          {
+            "epoch": 25.0,
+            "kid_covid": 0.44657,
+            "kid_covid_std": 0.01227,
+            "lpips_div_covid": 0.31236,
+            "pixel_div_covid": 0.27304,
+            "D_real_train": 0.45612,
+            "D_real_ref": 0.47435,
+            "D_overfit_gap": -0.01823
+          },
+          {
+            "epoch": 50.0,
+            "kid_covid": 0.39395,
+            "kid_covid_std": 0.01104,
+            "lpips_div_covid": 0.3305,
+            "pixel_div_covid": 0.24617,
+            "D_real_train": 0.52857,
+            "D_real_ref": 0.42189,
+            "D_overfit_gap": 0.10668
+          },
+          {
+            "epoch": 75.0,
+            "kid_covid": 0.42663,
+            "kid_covid_std": 0.01143,
+            "lpips_div_covid": 0.32121,
+            "pixel_div_covid": 0.23667,
+            "D_real_train": 0.58921,
+            "D_real_ref": 0.47403,
+            "D_overfit_gap": 0.11518
+          },
+          {
+            "epoch": 100.0,
+            "kid_covid": 0.34128,
+            "kid_covid_std": 0.01126,
+            "lpips_div_covid": 0.33749,
+            "pixel_div_covid": 0.25819,
+            "D_real_train": 0.70857,
+            "D_real_ref": 0.42143,
+            "D_overfit_gap": 0.28715
+          },
+          {
+            "epoch": 125.0,
+            "kid_covid": 0.34929,
+            "kid_covid_std": 0.01087,
+            "lpips_div_covid": 0.29782,
+            "pixel_div_covid": 0.23577,
+            "D_real_train": 0.94099,
+            "D_real_ref": 0.66121,
+            "D_overfit_gap": 0.27978
+          },
+          {
+            "epoch": 150.0,
+            "kid_covid": 0.28805,
+            "kid_covid_std": 0.00964,
+            "lpips_div_covid": 0.28938,
+            "pixel_div_covid": 0.24621,
+            "D_real_train": 0.55829,
+            "D_real_ref": 0.18753,
+            "D_overfit_gap": 0.37076
+          },
+          {
+            "epoch": 175.0,
+            "kid_covid": 0.31461,
+            "kid_covid_std": 0.01157,
+            "lpips_div_covid": 0.30726,
+            "pixel_div_covid": 0.24705,
+            "D_real_train": 0.80794,
+            "D_real_ref": 0.23433,
+            "D_overfit_gap": 0.57361
+          },
+          {
+            "epoch": 200.0,
+            "kid_covid": 0.31061,
+            "kid_covid_std": 0.01023,
+            "lpips_div_covid": 0.3175,
+            "pixel_div_covid": 0.25812,
+            "D_real_train": 0.8631,
+            "D_real_ref": 0.18164,
+            "D_overfit_gap": 0.68146
+          },
+          {
+            "epoch": 225.0,
+            "kid_covid": 0.29994,
+            "kid_covid_std": 0.0116,
+            "lpips_div_covid": 0.31218,
+            "pixel_div_covid": 0.26195,
+            "D_real_train": 0.77286,
+            "D_real_ref": 0.06837,
+            "D_overfit_gap": 0.70449
+          },
+          {
+            "epoch": 250.0,
+            "kid_covid": 0.29645,
+            "kid_covid_std": 0.01034,
+            "lpips_div_covid": 0.29189,
+            "pixel_div_covid": 0.24972,
+            "D_real_train": 0.5931,
+            "D_real_ref": 0.04294,
+            "D_overfit_gap": 0.55016
+          }
+        ],
+        "final_metrics": {
+          "G_best": {
+            "kid_by_class": {
+              "COVID": 0.28163618571907256,
+              "Normal": 0.37886149329671953,
+              "Pneumonia": 0.4437186280140616
+            },
+            "conditioning_acc": {
+              "COVID": 0.9866666666666667,
+              "Normal": 0.006666666666666667,
+              "Pneumonia": 0.78
+            },
+            "fid_covid": 261.8415640358112,
+            "lpips_div_covid": 0.28920039534568787,
+            "lpips_div_ratio": 0.7132867585204038,
+            "pixel_div_ratio": 0.9023900778696616,
+            "nn_l2_synth_median": 0.13931018114089966,
+            "nn_l2_real_ref_median": 0.14359228312969208,
+            "memorization_ratio": 0.9701787457134807,
+            "frac_synth_closer_than_min_real": 0.0
+          },
+          "G_final": {
+            "kid_by_class": {
+              "COVID": 0.2966624535277785,
+              "Normal": 0.30736511930671234,
+              "Pneumonia": 0.3452492667162311
+            },
+            "conditioning_acc": {
+              "COVID": 0.9733333333333334,
+              "Normal": 0.006666666666666667,
+              "Pneumonia": 0.7366666666666667
+            },
+            "fid_covid": 270.8900420146633,
+            "lpips_div_covid": 0.3071194589138031,
+            "lpips_div_ratio": 0.7574825168040121,
+            "pixel_div_ratio": 0.929202438905188,
+            "nn_l2_synth_median": 0.14405220746994019,
+            "nn_l2_real_ref_median": 0.14359228312969208,
+            "memorization_ratio": 1.0032029878641369,
+            "frac_synth_closer_than_min_real": 0.0
+          }
+        }
+      },
+      "runB_mitigated": {
+        "config": {
+          "name": "runB_mitigated",
+          "label": "Run B (SN + smoothing + TTUR)",
+          "spectral_norm": true,
+          "d_batchnorm": false,
+          "real_label": 0.9,
+          "lr_d": 0.0004,
+          "lr_g": 0.0001,
+          "diffaug": false
+        },
+        "train_time_s": 122.2,
+        "iterations": 3750,
+        "best_kid_epoch": 250,
+        "peak_vram_mb": 3274,
+        "peak_vram_reserved_mb": 4200,
+        "final_epoch": {
+          "epoch": 250.0,
+          "loss_D": 1.0994,
+          "loss_G": 1.3002,
+          "D_x": 0.5495,
+          "D_G_z1": 0.3533,
+          "D_G_z2": 0.2856,
+          "nonfinite_iters": 0.0
+        },
+        "frac_epochs_D_G_z_below_0.05": 0.0,
+        "frac_epochs_loss_D_below_0.1": 0.0,
+        "max_loss_G": 2.07,
+        "nonfinite_iters": 0,
+        "evals": [
+          {
+            "epoch": 1.0,
+            "kid_covid": 0.79731,
+            "kid_covid_std": 0.01181,
+            "lpips_div_covid": 0.03284,
+            "pixel_div_covid": 0.01512,
+            "D_real_train": 0.97797,
+            "D_real_ref": 0.97068,
+            "D_overfit_gap": 0.00729
+          },
+          {
+            "epoch": 5.0,
+            "kid_covid": 0.51961,
+            "kid_covid_std": 0.0128,
+            "lpips_div_covid": 0.08335,
+            "pixel_div_covid": 0.08067,
+            "D_real_train": 0.17334,
+            "D_real_ref": 0.22831,
+            "D_overfit_gap": -0.05497
+          },
+          {
+            "epoch": 10.0,
+            "kid_covid": 0.54993,
+            "kid_covid_std": 0.01277,
+            "lpips_div_covid": 0.08731,
+            "pixel_div_covid": 0.10323,
+            "D_real_train": 0.60191,
+            "D_real_ref": 0.59322,
+            "D_overfit_gap": 0.00869
+          },
+          {
+            "epoch": 25.0,
+            "kid_covid": 0.40088,
+            "kid_covid_std": 0.01093,
+            "lpips_div_covid": 0.18704,
+            "pixel_div_covid": 0.18871,
+            "D_real_train": 0.59016,
+            "D_real_ref": 0.55543,
+            "D_overfit_gap": 0.03473
+          },
+          {
+            "epoch": 50.0,
+            "kid_covid": 0.42902,
+            "kid_covid_std": 0.01142,
+            "lpips_div_covid": 0.23959,
+            "pixel_div_covid": 0.22563,
+            "D_real_train": 0.51083,
+            "D_real_ref": 0.51709,
+            "D_overfit_gap": -0.00627
+          },
+          {
+            "epoch": 75.0,
+            "kid_covid": 0.37064,
+            "kid_covid_std": 0.01207,
+            "lpips_div_covid": 0.26103,
+            "pixel_div_covid": 0.21875,
+            "D_real_train": 0.56708,
+            "D_real_ref": 0.50692,
+            "D_overfit_gap": 0.06016
+          },
+          {
+            "epoch": 100.0,
+            "kid_covid": 0.39745,
+            "kid_covid_std": 0.01161,
+            "lpips_div_covid": 0.24736,
+            "pixel_div_covid": 0.21622,
+            "D_real_train": 0.58758,
+            "D_real_ref": 0.54863,
+            "D_overfit_gap": 0.03895
+          },
+          {
+            "epoch": 125.0,
+            "kid_covid": 0.38118,
+            "kid_covid_std": 0.0116,
+            "lpips_div_covid": 0.27693,
+            "pixel_div_covid": 0.22699,
+            "D_real_train": 0.48985,
+            "D_real_ref": 0.48788,
+            "D_overfit_gap": 0.00197
+          },
+          {
+            "epoch": 150.0,
+            "kid_covid": 0.35937,
+            "kid_covid_std": 0.01069,
+            "lpips_div_covid": 0.26506,
+            "pixel_div_covid": 0.23762,
+            "D_real_train": 0.4372,
+            "D_real_ref": 0.38154,
+            "D_overfit_gap": 0.05566
+          },
+          {
+            "epoch": 175.0,
+            "kid_covid": 0.32372,
+            "kid_covid_std": 0.01087,
+            "lpips_div_covid": 0.28921,
+            "pixel_div_covid": 0.22677,
+            "D_real_train": 0.57151,
+            "D_real_ref": 0.49575,
+            "D_overfit_gap": 0.07576
+          },
+          {
+            "epoch": 200.0,
+            "kid_covid": 0.33516,
+            "kid_covid_std": 0.01098,
+            "lpips_div_covid": 0.29513,
+            "pixel_div_covid": 0.24104,
+            "D_real_train": 0.55994,
+            "D_real_ref": 0.50377,
+            "D_overfit_gap": 0.05617
+          },
+          {
+            "epoch": 225.0,
+            "kid_covid": 0.26355,
+            "kid_covid_std": 0.01009,
+            "lpips_div_covid": 0.31822,
+            "pixel_div_covid": 0.22998,
+            "D_real_train": 0.5459,
+            "D_real_ref": 0.47451,
+            "D_overfit_gap": 0.07139
+          },
+          {
+            "epoch": 250.0,
+            "kid_covid": 0.26351,
+            "kid_covid_std": 0.00957,
+            "lpips_div_covid": 0.30675,
+            "pixel_div_covid": 0.23289,
+            "D_real_train": 0.62676,
+            "D_real_ref": 0.51359,
+            "D_overfit_gap": 0.11317
+          }
+        ],
+        "final_metrics": {
+          "G_best": {
+            "kid_by_class": {
+              "COVID": 0.268017011318693,
+              "Normal": 0.3623678376717691,
+              "Pneumonia": 0.3683720753456878
+            },
+            "conditioning_acc": {
+              "COVID": 1.0,
+              "Normal": 0.0033333333333333335,
+              "Pneumonia": 0.20333333333333334
+            },
+            "fid_covid": 250.63299154685473,
+            "lpips_div_covid": 0.2973978519439697,
+            "lpips_div_ratio": 0.7335050477731241,
+            "pixel_div_ratio": 0.903241650910192,
+            "nn_l2_synth_median": 0.1396406888961792,
+            "nn_l2_real_ref_median": 0.14359228312969208,
+            "memorization_ratio": 0.9724804554438081,
+            "frac_synth_closer_than_min_real": 0.0
+          },
+          "G_final": {
+            "kid_by_class": {
+              "COVID": 0.268017011318693,
+              "Normal": 0.3623678376717691,
+              "Pneumonia": 0.3683720753456878
+            },
+            "conditioning_acc": {
+              "COVID": 1.0,
+              "Normal": 0.0033333333333333335,
+              "Pneumonia": 0.20333333333333334
+            },
+            "fid_covid": 250.63299154685473,
+            "lpips_div_covid": 0.2973978519439697,
+            "lpips_div_ratio": 0.7335050477731241,
+            "pixel_div_ratio": 0.903241650910192,
+            "nn_l2_synth_median": 0.1396406888961792,
+            "nn_l2_real_ref_median": 0.14359228312969208,
+            "memorization_ratio": 0.9724804554438081,
+            "frac_synth_closer_than_min_real": 0.0
+          }
+        }
+      }
+    },
+    "generator_for_augmentation": "runB_mitigated@250:-90.270485"
+  },
+  "control_real_vs_synthetic": {
+    "auc_logreg_features_mean": 1.0,
+    "auc_logreg_features_std": 0.0,
+    "auc_small_cnn_mean": 1.0,
+    "auc_small_cnn_std": 0.0,
+    "n_per_class": 300
+  },
+  "sweep": {
+    "multipliers": [
+      0,
+      1,
+      3
+    ],
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "n_covid_train_real": 96,
+    "per_seed": [
+      {
+        "mult": 0,
+        "seed": 42,
+        "n_synthetic": 0,
+        "best_epoch": 15,
+        "accuracy": 87.5,
+        "macro_f1": 0.8735,
+        "acc_7:2:1": 95.5,
+        "precision_COVID": 1.0,
+        "precision_Normal": 0.7343,
+        "precision_Pneumonia": 0.9845,
+        "recall_COVID": 0.675,
+        "recall_Normal": 0.995,
+        "recall_Pneumonia": 0.955,
+        "f1_COVID": 0.806,
+        "f1_Normal": 0.845,
+        "f1_Pneumonia": 0.9695,
+        "covid_specificity": 1.0,
+        "covid_ppv@10%": 1.0,
+        "covid_auc": 0.979,
+        "covid_recall_ci_low": 0.6073,
+        "covid_recall_ci_high": 0.7361
+      },
+      {
+        "mult": 0,
+        "seed": 43,
+        "n_synthetic": 0,
+        "best_epoch": 9,
+        "accuracy": 89.1667,
+        "macro_f1": 0.8917,
+        "acc_7:2:1": 94.35,
+        "precision_COVID": 0.9745,
+        "precision_Normal": 0.7823,
+        "precision_Pneumonia": 0.9641,
+        "recall_COVID": 0.765,
+        "recall_Normal": 0.97,
+        "recall_Pneumonia": 0.94,
+        "f1_COVID": 0.8571,
+        "f1_Normal": 0.8661,
+        "f1_Pneumonia": 0.9519,
+        "covid_specificity": 0.99,
+        "covid_ppv@10%": 0.8947,
+        "covid_auc": 0.9789,
+        "covid_recall_ci_low": 0.7016,
+        "covid_recall_ci_high": 0.8184
+      },
+      {
+        "mult": 0,
+        "seed": 44,
+        "n_synthetic": 0,
+        "best_epoch": 15,
+        "accuracy": 88.8333,
+        "macro_f1": 0.8885,
+        "acc_7:2:1": 95.5,
+        "precision_COVID": 0.9865,
+        "precision_Normal": 0.7557,
+        "precision_Pneumonia": 0.9947,
+        "recall_COVID": 0.73,
+        "recall_Normal": 0.99,
+        "recall_Pneumonia": 0.945,
+        "f1_COVID": 0.8391,
+        "f1_Normal": 0.8571,
+        "f1_Pneumonia": 0.9692,
+        "covid_specificity": 0.995,
+        "covid_ppv@10%": 0.9419,
+        "covid_auc": 0.9817,
+        "covid_recall_ci_low": 0.6646,
+        "covid_recall_ci_high": 0.7868
+      },
+      {
+        "mult": 1,
+        "seed": 42,
+        "n_synthetic": 96,
+        "best_epoch": 14,
+        "accuracy": 87.5,
+        "macro_f1": 0.8748,
+        "acc_7:2:1": 95.6,
+        "precision_COVID": 1.0,
+        "precision_Normal": 0.7299,
+        "precision_Pneumonia": 0.9947,
+        "recall_COVID": 0.69,
+        "recall_Normal": 1.0,
+        "recall_Pneumonia": 0.935,
+        "f1_COVID": 0.8166,
+        "f1_Normal": 0.8439,
+        "f1_Pneumonia": 0.9639,
+        "covid_specificity": 1.0,
+        "covid_ppv@10%": 1.0,
+        "covid_auc": 0.9812,
+        "covid_recall_ci_low": 0.6228,
+        "covid_recall_ci_high": 0.75
+      },
+      {
+        "mult": 1,
+        "seed": 43,
+        "n_synthetic": 96,
+        "best_epoch": 10,
+        "accuracy": 87.3333,
+        "macro_f1": 0.8717,
+        "acc_7:2:1": 95.05,
+        "precision_COVID": 0.9928,
+        "precision_Normal": 0.7444,
+        "precision_Pneumonia": 0.9643,
+        "recall_COVID": 0.685,
+        "recall_Normal": 0.99,
+        "recall_Pneumonia": 0.945,
+        "f1_COVID": 0.8107,
+        "f1_Normal": 0.8498,
+        "f1_Pneumonia": 0.9545,
+        "covid_specificity": 0.9975,
+        "covid_ppv@10%": 0.9682,
+        "covid_auc": 0.9643,
+        "covid_recall_ci_low": 0.6176,
+        "covid_recall_ci_high": 0.7454
+      },
+      {
+        "mult": 1,
+        "seed": 44,
+        "n_synthetic": 96,
+        "best_epoch": 10,
+        "accuracy": 85.6667,
+        "macro_f1": 0.8529,
+        "acc_7:2:1": 94.7,
+        "precision_COVID": 0.992,
+        "precision_Normal": 0.7122,
+        "precision_Pneumonia": 0.9746,
+        "recall_COVID": 0.62,
+        "recall_Normal": 0.99,
+        "recall_Pneumonia": 0.96,
+        "f1_COVID": 0.7631,
+        "f1_Normal": 0.8285,
+        "f1_Pneumonia": 0.9673,
+        "covid_specificity": 0.9975,
+        "covid_ppv@10%": 0.965,
+        "covid_auc": 0.9775,
+        "covid_recall_ci_low": 0.5511,
+        "covid_recall_ci_high": 0.6844
+      },
+      {
+        "mult": 3,
+        "seed": 42,
+        "n_synthetic": 288,
+        "best_epoch": 18,
+        "accuracy": 85.3333,
+        "macro_f1": 0.851,
+        "acc_7:2:1": 94.75,
+        "precision_COVID": 0.992,
+        "precision_Normal": 0.6982,
+        "precision_Pneumonia": 0.9947,
+        "recall_COVID": 0.62,
+        "recall_Normal": 0.995,
+        "recall_Pneumonia": 0.945,
+        "f1_COVID": 0.7631,
+        "f1_Normal": 0.8206,
+        "f1_Pneumonia": 0.9692,
+        "covid_specificity": 0.9975,
+        "covid_ppv@10%": 0.965,
+        "covid_auc": 0.9707,
+        "covid_recall_ci_low": 0.5511,
+        "covid_recall_ci_high": 0.6844
+      },
+      {
+        "mult": 3,
+        "seed": 43,
+        "n_synthetic": 288,
+        "best_epoch": 7,
+        "accuracy": 84.1667,
+        "macro_f1": 0.8434,
+        "acc_7:2:1": 93.35,
+        "precision_COVID": 0.9852,
+        "precision_Normal": 0.6828,
+        "precision_Pneumonia": 0.9943,
+        "recall_COVID": 0.665,
+        "recall_Normal": 0.99,
+        "recall_Pneumonia": 0.87,
+        "f1_COVID": 0.794,
+        "f1_Normal": 0.8082,
+        "f1_Pneumonia": 0.928,
+        "covid_specificity": 0.995,
+        "covid_ppv@10%": 0.9366,
+        "covid_auc": 0.9714,
+        "covid_recall_ci_low": 0.597,
+        "covid_recall_ci_high": 0.7268
+      },
+      {
+        "mult": 3,
+        "seed": 44,
+        "n_synthetic": 288,
+        "best_epoch": 5,
+        "accuracy": 88.8333,
+        "macro_f1": 0.887,
+        "acc_7:2:1": 95.75,
+        "precision_COVID": 0.993,
+        "precision_Normal": 0.7586,
+        "precision_Pneumonia": 0.9848,
+        "recall_COVID": 0.705,
+        "recall_Normal": 0.99,
+        "recall_Pneumonia": 0.97,
+        "f1_COVID": 0.8246,
+        "f1_Normal": 0.859,
+        "f1_Pneumonia": 0.9773,
+        "covid_specificity": 0.9975,
+        "covid_ppv@10%": 0.9691,
+        "covid_auc": 0.9877,
+        "covid_recall_ci_low": 0.6384,
+        "covid_recall_ci_high": 0.7639
+      }
+    ],
+    "mean_std": {
+      "0x": {
+        "accuracy": {
+          "mean": 88.5,
+          "std": 0.8819
+        },
+        "macro_f1": {
+          "mean": 0.8846,
+          "std": 0.0097
+        },
+        "acc_7:2:1": {
+          "mean": 95.1167,
+          "std": 0.664
+        },
+        "recall_COVID": {
+          "mean": 0.7233,
+          "std": 0.0454
+        },
+        "recall_Normal": {
+          "mean": 0.985,
+          "std": 0.0132
+        },
+        "recall_Pneumonia": {
+          "mean": 0.9467,
+          "std": 0.0076
+        },
+        "precision_COVID": {
+          "mean": 0.987,
+          "std": 0.0127
+        },
+        "precision_Normal": {
+          "mean": 0.7574,
+          "std": 0.024
+        },
+        "precision_Pneumonia": {
+          "mean": 0.9811,
+          "std": 0.0156
+        },
+        "f1_COVID": {
+          "mean": 0.8341,
+          "std": 0.026
+        },
+        "f1_Normal": {
+          "mean": 0.8561,
+          "std": 0.0106
+        },
+        "f1_Pneumonia": {
+          "mean": 0.9636,
+          "std": 0.0101
+        },
+        "covid_specificity": {
+          "mean": 0.995,
+          "std": 0.005
+        },
+        "covid_ppv@10%": {
+          "mean": 0.9456,
+          "std": 0.0527
+        },
+        "covid_auc": {
+          "mean": 0.9798,
+          "std": 0.0016
+        }
+      },
+      "1x": {
+        "accuracy": {
+          "mean": 86.8333,
+          "std": 1.0138
+        },
+        "macro_f1": {
+          "mean": 0.8665,
+          "std": 0.0118
+        },
+        "acc_7:2:1": {
+          "mean": 95.1167,
+          "std": 0.4537
+        },
+        "recall_COVID": {
+          "mean": 0.665,
+          "std": 0.0391
+        },
+        "recall_Normal": {
+          "mean": 0.9933,
+          "std": 0.0058
+        },
+        "recall_Pneumonia": {
+          "mean": 0.9467,
+          "std": 0.0126
+        },
+        "precision_COVID": {
+          "mean": 0.9949,
+          "std": 0.0044
+        },
+        "precision_Normal": {
+          "mean": 0.7288,
+          "std": 0.0161
+        },
+        "precision_Pneumonia": {
+          "mean": 0.9779,
+          "std": 0.0155
+        },
+        "f1_COVID": {
+          "mean": 0.7968,
+          "std": 0.0293
+        },
+        "f1_Normal": {
+          "mean": 0.8407,
+          "std": 0.011
+        },
+        "f1_Pneumonia": {
+          "mean": 0.9619,
+          "std": 0.0066
+        },
+        "covid_specificity": {
+          "mean": 0.9983,
+          "std": 0.0014
+        },
+        "covid_ppv@10%": {
+          "mean": 0.9777,
+          "std": 0.0194
+        },
+        "covid_auc": {
+          "mean": 0.9743,
+          "std": 0.0089
+        }
+      },
+      "3x": {
+        "accuracy": {
+          "mean": 86.1111,
+          "std": 2.4286
+        },
+        "macro_f1": {
+          "mean": 0.8604,
+          "std": 0.0233
+        },
+        "acc_7:2:1": {
+          "mean": 94.6167,
+          "std": 1.2055
+        },
+        "recall_COVID": {
+          "mean": 0.6633,
+          "std": 0.0425
+        },
+        "recall_Normal": {
+          "mean": 0.9917,
+          "std": 0.0029
+        },
+        "recall_Pneumonia": {
+          "mean": 0.9283,
+          "std": 0.052
+        },
+        "precision_COVID": {
+          "mean": 0.99,
+          "std": 0.0042
+        },
+        "precision_Normal": {
+          "mean": 0.7132,
+          "std": 0.0401
+        },
+        "precision_Pneumonia": {
+          "mean": 0.9913,
+          "std": 0.0056
+        },
+        "f1_COVID": {
+          "mean": 0.7939,
+          "std": 0.0307
+        },
+        "f1_Normal": {
+          "mean": 0.8293,
+          "std": 0.0265
+        },
+        "f1_Pneumonia": {
+          "mean": 0.9582,
+          "std": 0.0265
+        },
+        "covid_specificity": {
+          "mean": 0.9967,
+          "std": 0.0014
+        },
+        "covid_ppv@10%": {
+          "mean": 0.9569,
+          "std": 0.0177
+        },
+        "covid_auc": {
+          "mean": 0.9766,
+          "std": 0.0096
+        }
+      }
+    },
+    "paired_stats": {
+      "1x_vs_0x": {
+        "delta_covid_recall_per_seed": [
+          0.015,
+          -0.08,
+          -0.11
+        ],
+        "mean_delta": -0.05833333333333335,
+        "ci95_t": [
+          -0.22043799158616967,
+          0.10377132491950297
+        ],
+        "mcnemar_covid_per_seed": [
+          {
+            "seed": 42,
+            "lost": 16,
+            "gained": 19,
+            "p_value": 0.735878800856881
+          },
+          {
+            "seed": 43,
+            "lost": 27,
+            "gained": 11,
+            "p_value": 0.013852965261321515
+          },
+          {
+            "seed": 44,
+            "lost": 34,
+            "gained": 12,
+            "p_value": 0.0016414913408482334
+          }
+        ],
+        "delta_macro_f1_mean": -0.018106513858942574
+      },
+      "3x_vs_0x": {
+        "delta_covid_recall_per_seed": [
+          -0.055,
+          -0.1,
+          -0.025
+        ],
+        "mean_delta": -0.06000000000000002,
+        "ci95_t": [
+          -0.1537741421894745,
+          0.033774142189474464
+        ],
+        "mcnemar_covid_per_seed": [
+          {
+            "seed": 42,
+            "lost": 26,
+            "gained": 15,
+            "p_value": 0.11727520595741225
+          },
+          {
+            "seed": 43,
+            "lost": 34,
+            "gained": 14,
+            "p_value": 0.00551520148550111
+          },
+          {
+            "seed": 44,
+            "lost": 21,
+            "gained": 16,
+            "p_value": 0.5113757815852296
+          }
+        ],
+        "delta_macro_f1_mean": -0.024119789514442453
+      }
+    },
+    "peak_vram_mb": 1691
+  },
+  "external_test_sample_size": {
+    "sens_0.92_lower_0.85": 92,
+    "sens_0.93_lower_0.85": 64,
+    "sens_0.95_lower_0.90": 127
+  },
+  "config": {
+    "baseline": {
+      "pretrained": false,
+      "optimizer": "sgd",
+      "lr": 0.01,
+      "momentum": 0.9,
+      "weight_decay": 0.0,
+      "epochs": 15,
+      "batch_size": 32,
+      "augment": false,
+      "class_weights": false,
+      "scheduler": null,
+      "warmup_epochs": 0,
+      "select": "last",
+      "patience": null
+    },
+    "corrected": {
+      "pretrained": true,
+      "optimizer": "adamw",
+      "lr": 0.0003,
+      "momentum": null,
+      "weight_decay": 0.05,
+      "epochs": 25,
+      "batch_size": 64,
+      "augment": true,
+      "class_weights": true,
+      "scheduler": "cosine",
+      "warmup_epochs": 1,
+      "select": "val_macro_f1",
+      "patience": 7
+    },
+    "augmentation": {
+      "rot_deg": 7.0,
+      "zoom": 0.1,
+      "shift": 0.04,
+      "brightness": 0.1,
+      "contrast": 0.15
+    },
+    "run_A": {
+      "name": "runA_naive",
+      "label": "Run A (ingênua)",
+      "spectral_norm": false,
+      "d_batchnorm": true,
+      "real_label": 1.0,
+      "lr_d": 0.0002,
+      "lr_g": 0.0002,
+      "diffaug": false
+    },
+    "run_B": {
+      "name": "runB_mitigated",
+      "label": "Run B (SN + smoothing + TTUR)",
+      "spectral_norm": true,
+      "d_batchnorm": false,
+      "real_label": 0.9,
+      "lr_d": 0.0004,
+      "lr_g": 0.0001,
+      "diffaug": false
+    },
+    "use_diffaug": false,
+    "amp_fp16": true,
+    "seed": 42,
+    "force_retrain": false
+  },
+  "times_s": {
+    "pip_s": 18.8,
+    "download_s": 2.2,
+    "sampling_s": 11.6,
+    "baseline_s": 18.0,
+    "corrected_s": 25.0,
+    "metric_setup_s": 13.3,
+    "gan_runA_naive_s": 127.3,
+    "gan_runB_mitigated_s": 156.7,
+    "control_s": 7.4,
+    "sweep_s": 208.4
+  },
+  "figures": [
+    "A4_data_overview.png",
+    "A4_samples_grid.png",
+    "A4_augmentation_examples.png",
+    "A4_baseline_vs_corrected.png",
+    "A4_gan_training_curves.png",
+    "A4_gan_quality_curves.png",
+    "A4_gan_fixed_noise_by_epoch.png",
+    "A4_gan_final_samples.png",
+    "A4_gan_memorization.png",
+    "A4_sweep_covid_metrics.png",
+    "A4_sweep_confusion.png"
+  ],
+  "peak_vram_notebook_mb": 3274,
+  "ram_rss_mb": 2614,
+  "ram_maxrss_mb": 2768,
+  "notebook_time_s": 809.5,
+  "notebook_time_scope": "da 1a célula de código (pip) até esta célula; com checkpoints no Drive, a reexecução pula os treinos",
+  "gpu": "Tesla T4",
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "torchvision": "0.26.0+cu128"
+  }
+}
