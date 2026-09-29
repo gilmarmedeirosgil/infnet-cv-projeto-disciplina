@@ -121,6 +121,7 @@ PREVALENCE = {"COVID": 0.1, "Normal": 0.7, "Pneumonia": 0.2}      # proporção 
 
 IMG = 64                    # resolução da cGAN e das imagens guardadas
 CLS_INPUT = 224             # entrada da ResNet-18 (64 -> 224, mesmo pipeline para reais e sintéticos)
+IMG_CLS_HIRES = 224         # seção 9.1: resolução nativa só para o classificador (reais, sem sintéticos); a cGAN continua em IMG=64
 N_DEV = {"COVID": 120, "Normal": 840, "Pneumonia": 240}
 N_TEST_PER_CLASS = 200      # teste fixo, balanceado, disjunto do dev
 N_REF_PER_CLASS = 300       # referência real para métricas da GAN e controle (fora do dev e do teste)
@@ -543,8 +544,8 @@ def predict(model, X_u8, batch_size=256):
             logits.append(model(prep_cls(X_u8[i:i + batch_size])).float())
     return torch.cat(logits)
 
-def evaluate_cls(model, idx):
-    logits = predict(model, X_all[idx])
+def evaluate_cls(model, idx, data_source=None):
+    logits = predict(model, (X_all if data_source is None else data_source)[idx])
     y = Y_all[idx]
     probs = logits.softmax(1).cpu().numpy()
     y_true, y_pred = y.cpu().numpy(), probs.argmax(1)
@@ -565,8 +566,11 @@ def lr_lambda_factory(total_steps, warmup_steps, min_ratio=0.01):
 # %%
 RESULTS = {}
 
-def run_classifier(name, cfg, seed, split="stratified", syn_u8=None, save_weights=False, gan_tag=None):
-    """Treina (ou carrega do Drive) um classificador. Retorna (resultado, modelo ou None)."""
+def run_classifier(name, cfg, seed, split="stratified", syn_u8=None, save_weights=False, gan_tag=None, data_source=None):
+    """Treina (ou carrega do Drive) um classificador. Retorna (resultado, modelo ou None).
+    data_source: tensor [N,1,H,W] alternativo a X_all (mesma indexação); usado pela seção 9.1 para treinar
+    com as imagens reais em resolução nativa (224 px) sem tocar na cGAN, que continua em X_all (64 px)."""
+    src = X_all if data_source is None else data_source
     path = CKPT_DIR / f"A4_cls_{name}.pt"
     if path.exists() and not FORCE_RETRAIN:
         ck = torch.load(path, map_location="cpu", weights_only=False)
@@ -580,7 +584,7 @@ def run_classifier(name, cfg, seed, split="stratified", syn_u8=None, save_weight
             return ck["result"], model
         print(f"[{name}] resultado no Drive é de outra GAN: retreinando.")
     tr_idx, va_idx = SPLITS[split]
-    Xtr, Ytr = X_all[tr_idx], Y_all[tr_idx]
+    Xtr, Ytr = src[tr_idx], Y_all[tr_idx]
     n_syn = 0 if syn_u8 is None else len(syn_u8)
     if n_syn:
         Xtr = torch.cat([Xtr, syn_u8.to(device)])
@@ -621,7 +625,7 @@ def run_classifier(name, cfg, seed, split="stratified", syn_u8=None, save_weight
             if scheduler is not None:
                 scheduler.step()
             tr_loss += loss.item() * len(y); tr_correct += int((logits.argmax(1) == y).sum()); seen += len(y)
-        va = evaluate_cls(model, va_idx)
+        va = evaluate_cls(model, va_idx, data_source=src)
         key = (va["macro_f1"], va["covid_recall"], -va["loss"])
         improved = cfg["select"] == "last" or best["key"] is None or key > best["key"]
         if improved:
@@ -636,8 +640,8 @@ def run_classifier(name, cfg, seed, split="stratified", syn_u8=None, save_weight
             break
     train_time = time.time() - t_start
     model.load_state_dict(best["state"])
-    train_eval = evaluate_cls(model, tr_idx)          # só reais, sem augmentation
-    va, te = evaluate_cls(model, va_idx), evaluate_cls(model, test_idx)
+    train_eval = evaluate_cls(model, tr_idx, data_source=src)          # só reais, sem augmentation
+    va, te = evaluate_cls(model, va_idx, data_source=src), evaluate_cls(model, test_idx, data_source=src)
     result = {"name": name, "seed": seed, "split": split, "config": cfg, "n_train_real": int(len(tr_idx)), "n_synthetic": n_syn,
               "train_class_counts": {c: int(v) for c, v in zip(CLASS_NAMES, counts.tolist())},
               "class_weights": None if weight is None else [round(float(w), 4) for w in weight],
@@ -1478,6 +1482,72 @@ for k, n in SAMPLE_SIZE.items():
 # **Priorização final, guiada pelos resultados.** Com o recall do pipeline corrigido em 67,5% (IC 95% [60,7%; 73,6%]) — abaixo da meta de 0,90 e longe até de 0,85 no limite inferior — e a GAN não trazendo ganho no sweep (item 4 desta seção vira **"não adotar" a GAN nesta configuração**), o gargalo não é validação externa ainda: é fechar a distância até a meta **no próprio teste interno**. Ordem de prioridade: (1) subir a resolução de entrada (item 2 da lista acima, o teto mais provável de estar limitando o recall, pela perda de opacidades finas documentada na seção 3); (2) auditar e mitigar os atalhos de fonte (item 1), porque o ganho medido aqui pode estar parcialmente inflado por viés classe×fonte; (3) reduzir a variância entre seeds (item 2 da lista acima, "Modelo") para que a próxima medição de recall seja confiável; (4) esforço em GAN/sintéticos fica pausado até que (1)–(3) sejam resolvidos — não há por que gastar tempo aperfeiçoando dados sintéticos enquanto o classificador de dados reais ainda está abaixo da meta e o controle real-vs-sintético falha o pré-requisito de AUC baixo. Só depois de bater a meta de sensibilidade no teste interno (com IC acima de 0,85) o próximo passo lógico é o cálculo de amostra acima (92 a 127 casos COVID, conforme a sensibilidade real) para um teste externo de verdade.
 
 # %% [markdown]
+# ### 9.1 Verificação da prioridade (1): resolução nativa (224 px) no pipeline real
+# A EDA (seção 3) e a análise da seção 5 levantaram a hipótese de que os 64 px — decisão anti-atalho (reduz o atalho de texto sobreposto) e de custo — apagam opacidades finas em vidro fosco e impõem um teto ao recall de COVID. Aqui testamos essa hipótese isolada: **mesmas imagens, mesmo split, mesma arquitetura e hiperparâmetros do pipeline corrigido (seção 5.2), única mudança é a resolução de armazenamento (64 px → 224 px, nativa, sem upsample) — e 3 seeds, para comparar com a mesma robustez estatística do *sweep* da seção 8**. A cGAN **não é retreinada**: continua em 64 px (`IMG`), intocada — subir a resolução dela é uma mudança bem mais cara (GANs escalam mal com resolução) e, com os sintéticos já descartados da produção (seção 8), não é a prioridade agora. `X_all` (64 px, usado pela cGAN/KID/controle) e este novo `X_all_hires` (224 px, só para os treinos desta seção) coexistem sem conflito — mesma indexação (`sel`, `tr_idx`/`va_idx`/`test_idx`), pixels diferentes.
+
+# %%
+t0 = time.time()
+arrays_hires = []
+for p in sel.path:
+    g, _, _ = load_gray(p)
+    arrays_hires.append(np.asarray(g.resize((IMG_CLS_HIRES, IMG_CLS_HIRES), Image.Resampling.BICUBIC), dtype=np.uint8))
+X_np_hires = np.stack(arrays_hires)[:, None]     # [N, 1, 224, 224] uint8 — mesma ordem/index de X_np
+del arrays_hires
+X_all_hires = torch.from_numpy(X_np_hires).to(device)
+TIMES["hires_reload_s"] = round(time.time() - t0, 1)
+print(f"Recarregadas {len(sel)} imagens em {IMG_CLS_HIRES}px nativos em {TIMES['hires_reload_s']}s "
+      f"({X_all_hires.element_size() * X_all_hires.nelement() / 2**20:.0f} MB na GPU; cGAN e X_all de 64px continuam intocados)")
+
+# %%
+HIRES_SEEDS = [42, 43, 44]
+hires_runs = {}
+for seed in HIRES_SEEDS:
+    t0 = time.time()
+    r, _ = run_classifier(f"hires224_corrected_s{seed}", CORRECTED_CFG, seed, split="stratified", data_source=X_all_hires)
+    hires_runs[seed] = r
+    print(f"[hires224, seed {seed}] recall COVID = {r['test']['covid_recall']:.3f} | macro-F1 = {r['test']['macro_f1']:.3f} "
+          f"| época {r['best_epoch']}/{r['epochs_run']} | {time.time() - t0:.1f}s | VRAM pico {r['peak_vram_mb']} MB")
+
+hires_recalls = np.array([hires_runs[s]["test"]["covid_recall"] for s in HIRES_SEEDS])
+low_recalls = np.array([RESULTS[f"sweep_m0_s{s}"]["test"]["covid_recall"] for s in HIRES_SEEDS])
+HIRES_VS_LOWRES = {
+    "seeds": HIRES_SEEDS,
+    "recall_covid_64px": low_recalls.tolist(), "recall_covid_224px": hires_recalls.tolist(),
+    "mean_64px": float(low_recalls.mean()), "std_64px": float(low_recalls.std(ddof=1)),
+    "mean_224px": float(hires_recalls.mean()), "std_224px": float(hires_recalls.std(ddof=1)),
+    "mean_delta": float((hires_recalls - low_recalls).mean()),
+}
+print(f"\nRecall COVID — 64px: {low_recalls.tolist()} (média {HIRES_VS_LOWRES['mean_64px']:.3f} ± {HIRES_VS_LOWRES['std_64px']:.3f}) | "
+      f"224px: {hires_recalls.tolist()} (média {HIRES_VS_LOWRES['mean_224px']:.3f} ± {HIRES_VS_LOWRES['std_224px']:.3f}) | "
+      f"delta médio {HIRES_VS_LOWRES['mean_delta']:+.3f}")
+
+# %%
+# fig: hires_vs_lowres
+fig, ax = plt.subplots(figsize=(5.5, 4.2))
+x = np.arange(len(HIRES_SEEDS))
+ax.bar(x - 0.19, low_recalls, 0.38, color=C_RED, label="64 px (já reportado)")
+ax.bar(x + 0.19, hires_recalls, 0.38, color=C_BLUE, label="224 px nativo (novo)")
+ax.axhline(0.90, color=C_GREEN, linestyle=":", label="meta recall 0,90 (Aula 7)")
+ax.axhline(HIRES_VS_LOWRES["mean_64px"], color=C_RED, linestyle="--", alpha=0.5)
+ax.axhline(HIRES_VS_LOWRES["mean_224px"], color=C_BLUE, linestyle="--", alpha=0.5)
+ax.set_xticks(x, [f"seed {s}" for s in HIRES_SEEDS]); ax.set_ylim(0, 1.05)
+ax.set_ylabel("recall COVID (teste)"); ax.set_title("Recall de COVID: 64px vs. 224px nativo, mesmo split/seeds", fontweight="bold", fontsize=10)
+ax.legend(fontsize=8)
+plt.tight_layout()
+savefig("hires_vs_lowres")
+plt.show()
+
+# %% [markdown]
+# <!-- ANALISE: preencher depois da execução real no Colab (T4/Pro). Cobrir: (1) o delta médio de recall foi na direção
+# esperada (224px > 64px) e de que magnitude — aproximou da meta 0,90 ou o gargalo era outra coisa (fonte, tamanho de
+# amostra, dificuldade genuína dos casos)?; (2) tempo/VRAM real de treino em 224px nativo vs 64px (o pipeline já usa
+# CLS_INPUT=224 hoje, então o custo do classificador em si não deveria mudar muito — só o recarregamento das imagens
+# e o uso de memória do X_all_hires; conferir contra TIMES['hires_reload_s'] e peak_vram_mb de cada run); (3) se o
+# ganho for pequeno/nulo, diferenciar duas leituras: a hipótese de resolução não era o gargalo principal (aponta para
+# os atalhos de fonte, item (2) da priorização acima, ou para o tamanho de amostra) vs. o downsample de 224px na EDA
+# (BICUBIC) ainda perde detalhe que só apareceria em resolução maior (299px nativo do dataset) -->
+
+# %% [markdown]
 # ## 10. Métricas finais (JSON)
 
 # %%
@@ -1526,6 +1596,9 @@ metrics = {
     "accuracy_paradox_all_normal": pred_all_normal,
     "baseline_group": strip_preds(baseline),
     "corrected": strip_preds(corrected),
+    "hires_224": {"image_size": IMG_CLS_HIRES, "reload_time_s": TIMES.get("hires_reload_s"),
+                  "runs": {seed: strip_preds(hires_runs[seed]) for seed in HIRES_SEEDS},
+                  "vs_64px": HIRES_VS_LOWRES},
     "gan": {"common_config": GAN_CFG, "feature_extractor": FEAT_NAME, "lpips": LPIPS_NAME, "real_diversity_covid": REAL_DIV,
             "kid_floor_train_vs_ref": KID_TRAIN_VS_REF, "runs": {name: gan_summary(name) for name in GAN},
             "generator_for_augmentation": GAN_TAG},
