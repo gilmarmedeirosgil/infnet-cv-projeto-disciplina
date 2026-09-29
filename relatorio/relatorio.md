@@ -1,6 +1,6 @@
 # Visão Computacional com CNNs e Transformers — Projeto da Disciplina
 
-**Gilmar Oliveira de Medeiros** · Faculdade Infnet — Pós-Graduação em Deep Learning e Visão Computacional
+**Gilmar Oliveira de Medeiros** · Faculdade Infnet — MBA em Engenharia de IA, Machine Learning e Deep Learning
 
 Repositório: <https://github.com/gilmarmedeirosgil/infnet-cv-projeto-disciplina>
 

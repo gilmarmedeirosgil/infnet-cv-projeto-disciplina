@@ -1,6 +1,6 @@
 # %% [markdown]
 # # A3 — Classificador de imagens com CNN pré-treinada (feature extraction)
-# **Visão Computacional com CNNs e Transformers** · Faculdade Infnet — Pós-Graduação · Gilmar Oliveira de Medeiros
+# **Visão Computacional com CNNs e Transformers** · Faculdade Infnet — MBA em Engenharia de IA, Machine Learning e Deep Learning · Gilmar Oliveira de Medeiros
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gilmarmedeirosgil/infnet-cv-projeto-disciplina/blob/main/notebooks/A3_cnn_kaggle.ipynb)
 #

@@ -1,6 +1,6 @@
 # %% [markdown]
 # # A1 — Vision Transformers para inspeção de defeitos em aço (NEU Surface Defects)
-# **Visão Computacional com CNNs e Transformers** · Faculdade Infnet — Pós-Graduação · Gilmar Oliveira de Medeiros
+# **Visão Computacional com CNNs e Transformers** · Faculdade Infnet — MBA em Engenharia de IA, Machine Learning e Deep Learning · Gilmar Oliveira de Medeiros
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gilmarmedeirosgil/infnet-cv-projeto-disciplina/blob/main/notebooks/A1_vision_transformers.ipynb)
 #

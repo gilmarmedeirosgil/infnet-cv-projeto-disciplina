@@ -1,6 +1,6 @@
 # %% [markdown]
 # # A4.1 — Estudo de caso: triagem de COVID-19 em raio-X de tórax com cGAN para *augmentation* sintética
-# **Visão Computacional com CNNs e Transformers** · Faculdade Infnet — Pós-Graduação · Gilmar Oliveira de Medeiros
+# **Visão Computacional com CNNs e Transformers** · Faculdade Infnet — MBA em Engenharia de IA, Machine Learning e Deep Learning · Gilmar Oliveira de Medeiros
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gilmarmedeirosgil/infnet-cv-projeto-disciplina/blob/main/notebooks/A4_estudo_caso_raio_x.ipynb)
 #
