@@ -8,14 +8,14 @@
 #
 # **Sobre o dataset.** O ADS-16 (Roffo & Vinciarelli, EMPIRE 2016) tem, apesar do nome, **20 categorias** de anúncios (o "16" vem do ano). Ele só tem **300 imagens de anúncio** (20 categorias × 15) — menos que as ≥500 pedidas pelo enunciado — então o corpus é completado com as **imagens dos usuários** do mesmo dataset (favoritas/não favoritas, rotuladas POS/NEG por 120 usuários), decisão D9 (`docs/decisoes.md`). **Licença**: proíbe redistribuir as imagens; a citação exigida ("The research in this paper use the ADS-16 database") está na seção 2 e no relatório. Por isso (decisão D10) este notebook, **depois de executado** (com miniaturas do ADS-16 nas saídas), **não vai para o repositório público** — só a versão-fonte sem outputs, aqui. A versão executada fica em `entregas/` (ignorado pelo git) e as figuras derivadas em `relatorio/figuras/A2_*` também (`.gitignore`).
 #
-# **Requisitos de execução (Colab)** — CLIP em inferência pura (`torch.no_grad()`), roda em CPU; valores medidos no "Executar tudo" de 28/09/2026 (Colab, CPU, sem GPU alocada):
+# **Requisitos de execução (Colab)** — CLIP em inferência pura (`torch.no_grad()`), roda em CPU; valores medidos no "Executar tudo" oficial mais recente (Colab, CPU, sem GPU alocada):
 #
 # | Recurso | Valor | Observação |
 # |---|---|---|
-# | RAM | **2.324 MB** (RSS) / **2.665 MB** de pico (`ru_maxrss`) | `resource.getrusage`, mesmo padrão do A1/A3 |
+# | RAM | <!-- ATUALIZAR APÓS PRÓXIMA EXECUÇÃO --> (ver `ram` no JSON final) | `resource.getrusage`, mesmo padrão do A1/A3 |
 # | VRAM | não aplicável (execução em CPU) | CLIP ViT-B/32 (151,3 M parâmetros) em inferência: pegada pequena, cabe folgado mesmo numa T4 se usada |
 # | Disco | ~1,5 GB (ADS-16 completo baixado pelo kagglehub; só uma fração é usada) | |
-# | Tempo total | **117,7 s (~2 min)**, em CPU | embeddings de 650 imagens (301 anúncios + 349 de usuários) em lotes de 64, sem treino |
+# | Tempo total | **122,8 s (~2 min)**, em CPU | embeddings de 650 imagens (301 anúncios + 349 de usuários) em lotes de 64, sem treino |
 #
 # **Mapa da rubrica:** 4.1 → seção 4 · 4.2 → seção 6 · 4.3 → seção 7 · 4.4 → seção 8.
 #
@@ -41,6 +41,7 @@ import psutil
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from PIL import Image
 
 import torch
 import torch.nn.functional as F
@@ -67,6 +68,20 @@ def ram_stats():
     return {"ram_rss_mb": round(psutil.Process().memory_info().rss / 2**20),
             "ram_maxrss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)}
 print("RAM:", ram_stats())
+
+def has_alpha(img):
+    return img.mode in ("RGBA", "LA", "PA") or "transparency" in img.info
+
+def load_rgb(path):
+    # .convert("RGB") direto numa imagem com transparência descarta o alpha e expõe o RGB "por baixo"
+    # (em geral preto); compõe sobre branco para que embedding e exibição vejam a mesma imagem.
+    img = Image.open(path)
+    if has_alpha(img):
+        img = img.convert("RGBA")
+        canvas = Image.new("RGB", img.size, (255, 255, 255))
+        canvas.paste(img, mask=img.split()[-1])
+        return canvas
+    return img.convert("RGB")
 
 # %%
 try:
@@ -209,9 +224,7 @@ show_idx = np.concatenate([
 for ax, i in zip(axes.flat, show_idx):
     row = corpus_df.iloc[i]
     try:
-        from PIL import Image
-        img = Image.open(row.path).convert("RGB")
-        ax.imshow(img)
+        ax.imshow(load_rgb(row.path))
     except Exception:
         pass
     label = row.category if row.source == "ads" else f"user {row.pref}"
@@ -248,7 +261,7 @@ print("logit_scale.exp():", clip_model.logit_scale.exp().item())
 
 # %% [markdown]
 # ## 5. Embeddings de imagem
-# Embeddings L2-normalizados de todo o corpus, em lotes, cacheados no Drive (`OUT_DIR/A2_image_embeds.npy`) para não recomputar em reexecuções.
+# Embeddings L2-normalizados de todo o corpus, em lotes, cacheados no Drive (`OUT_DIR/A2_image_embeds_<fingerprint>.npy`) para não recomputar em reexecuções. Imagens com transparência (RGBA/LA/P com alpha) são compostas sobre fundo branco antes de converter para RGB (`load_rgb`), tanto aqui quanto nas figuras.
 
 # %%
 def _extract_embed(out):
@@ -294,13 +307,26 @@ def get_text_features_clean(texts, batch_size=64):
 
 # %%
 import hashlib
-from PIL import Image
 
-# Cache chaveado por um fingerprint do corpus (não só o tamanho): qualquer mudança na lista de
-# caminhos (reamostragem, bug corrigido, corpus diferente) muda o hash e força recálculo — um
-# corpus antigo em cache NUNCA é usado silenciosamente com um corpus_df novo (o formato antigo,
-# `A2_image_embeds.npy` sem fingerprint, é ignorado de propósito).
-CORPUS_FINGERPRINT = hashlib.sha256("\n".join(corpus_df.path).encode()).hexdigest()[:16]
+# Carrega (e filtra as não-carregáveis) ANTES do fingerprint, para que o hash descreva exatamente
+# as linhas de corpus_df que terão embedding.
+t0 = time.time()
+pil_images, ok_idx, n_alpha = [], [], 0
+for i, p in enumerate(corpus_df.path):
+    try:
+        n_alpha += has_alpha(Image.open(p))
+        pil_images.append(load_rgb(p))
+        ok_idx.append(i)
+    except Exception as e:
+        print(f"pulando {p}: {e!r}")
+corpus_df = corpus_df.iloc[ok_idx].reset_index(drop=True)
+print(f"{len(pil_images)} imagens carregadas ({n_alpha} com transparência, compostas sobre branco)")
+
+# Cache chaveado por um fingerprint do corpus filtrado + da versão do pré-processamento: qualquer
+# mudança na lista de caminhos ou em load_rgb muda o hash e força recálculo — um cache antigo
+# NUNCA é usado silenciosamente com um corpus_df novo.
+PREPROC_TAG = "load_rgb:alpha-over-white:v1"
+CORPUS_FINGERPRINT = hashlib.sha256("\n".join([PREPROC_TAG, *corpus_df.path]).encode()).hexdigest()[:16]
 CACHE_PATH = OUT_DIR / f"A2_image_embeds_{CORPUS_FINGERPRINT}.npy"
 print("Fingerprint do corpus:", CORPUS_FINGERPRINT)
 
@@ -308,18 +334,11 @@ if CACHE_PATH.exists() and not globals().get("FORCE_RECOMPUTE", False):
     image_embeds = torch.from_numpy(np.load(CACHE_PATH))
     print(f"Embeddings carregados do cache ({CACHE_PATH.name}): {tuple(image_embeds.shape)}")
 else:
-    t0 = time.time()
-    pil_images, ok_idx = [], []
-    for i, p in enumerate(corpus_df.path):
-        try:
-            pil_images.append(Image.open(p).convert("RGB"))
-            ok_idx.append(i)
-        except Exception as e:
-            print(f"pulando {p}: {e!r}")
-    corpus_df = corpus_df.iloc[ok_idx].reset_index(drop=True)
     image_embeds = get_image_features_clean(pil_images)
     np.save(CACHE_PATH, image_embeds.numpy())
     print(f"Embeddings calculados para {len(pil_images)} imagens em {time.time() - t0:.1f}s")
+del pil_images
+gc.collect()
 
 assert len(image_embeds) == len(corpus_df), "embeddings e corpus_df com tamanhos diferentes — cache incompatível"
 print("shape:", tuple(image_embeds.shape), "| norma média:", image_embeds.norm(dim=-1).mean().item())
@@ -329,12 +348,17 @@ print("shape:", tuple(image_embeds.shape), "| norma média:", image_embeds.norm(
 # certo mesmo se um dia a versão do transformers mudar de novo. Compara com o forward "cru" do
 # CLIPModel, cujos .image_embeds/.text_embeds são, por definição, o embedding projetado.
 with torch.no_grad():
-    _sanity_img = clip_processor(images=[Image.open(corpus_df.path[0]).convert("RGB")], return_tensors="pt").to(device)
-    _raw = clip_model(**_sanity_img, **clip_processor(text=["a photo."], return_tensors="pt").to(device))
+    _sanity_img = clip_processor(images=[load_rgb(corpus_df.path[0])], return_tensors="pt").to(device)
+    _sanity_txt = clip_processor(text=["a photo."], return_tensors="pt").to(device)
+    _raw = clip_model(**_sanity_img, **_sanity_txt)
     _via_get = _extract_embed(clip_model.get_image_features(**_sanity_img))
     _diff_img = (F.normalize(_raw.image_embeds, dim=-1) - F.normalize(_via_get, dim=-1)).abs().max().item()
     assert _diff_img < 1e-4, f"get_image_features não bate com o forward cru do CLIPModel (diff={_diff_img})"
+    _via_get_txt = _extract_embed(clip_model.get_text_features(**_sanity_txt))
+    _diff_txt = (F.normalize(_raw.text_embeds, dim=-1) - F.normalize(_via_get_txt, dim=-1)).abs().max().item()
+    assert _diff_txt < 1e-4, f"get_text_features não bate com o forward cru do CLIPModel (diff={_diff_txt})"
 print(f"OK: _extract_embed(get_image_features) bate com CLIPModel(...).image_embeds (diff={_diff_img:.1e})")
+print(f"OK: _extract_embed(get_text_features) bate com CLIPModel(...).text_embeds (diff={_diff_txt:.1e})")
 
 # %%
 # Sanidade extra (barata): zero-shot dos 301 anúncios contra as 20 categorias do próprio ADS-16
@@ -397,7 +421,7 @@ print(f"cosseno vs prompt neutro: média {sim_neutral.mean():.3f} ± {sim_neutra
 # ### 6.1 Threshold de ocorrência — **Rubrica 4.2**
 # O material da aula não ensina como calibrar um limiar absoluto sobre cosseno bruto, e por bom motivo: cossenos de pares corretos no CLIP ficam tipicamente entre ~0,25 e ~0,35, e o "fundo" (pares incorretos) em ~0,20–0,25 (medido no material da Aula 6, fine-tuning nb[10]: correto 0,2918, incorreto 0,2384). Um threshold fixo como 0,5 nunca dispararia.
 #
-# **Critério escolhido: margem sobre um prompt neutro.** Um conceito $c$ "ocorre" numa imagem $i$ se $s(i,c) - s(i,\text{neutro}) > \delta$, onde o "neutro" é a média (mesmo esquema de ensembling) de `"a photo."`, `"an advertisement."`, `"a picture."` — descrições que qualquer imagem do corpus satisfaz igualmente bem, servindo de referência do "cosseno de fundo" daquela imagem específica (em vez de um valor fixo global, compensa imagens que têm cosseno geral mais alto/baixo com qualquer texto). O valor de $\delta$ é fixado no **percentil 90 da distribuição de margens** de todas as combinações (imagem, conceito) do corpus — ou seja, por construção, ~10% das combinações "ocorrem", o que é plausível para 25 conceitos concretos numa imagem que tipicamente mostra 1–3 objetos relevantes.
+# **Critério escolhido: margem sobre um prompt neutro.** Um conceito $c$ "ocorre" numa imagem $i$ se $s(i,c) - s(i,\text{neutro}) > \delta$, onde o "neutro" é uma média simples (re-normalizada) dos embeddings de 3 prompts fixos — `"a photo."`, `"an advertisement."`, `"a picture."` —, sem o ensembling de 8 templates usado nos conceitos. Esses prompts são descrições que qualquer imagem do corpus satisfaz igualmente bem, servindo de referência do "cosseno de fundo" daquela imagem específica (em vez de um valor fixo global, compensa imagens que têm cosseno geral mais alto/baixo com qualquer texto). O valor de $\delta$ é fixado no **percentil 90 da distribuição de margens** de todas as combinações (imagem, conceito) do corpus — ou seja, por construção, ~10% das combinações "ocorrem", o que é plausível para 25 conceitos concretos numa imagem que tipicamente mostra 1–3 objetos relevantes.
 
 # %%
 margin = sim_matrix - sim_neutral[:, None]     # [N_imgs, N_concepts]
@@ -442,8 +466,7 @@ for row, concept in enumerate(top5):
     for col, img_idx in enumerate(best_idx):
         ax = axes[row, col]
         try:
-            Image.open(corpus_df.iloc[img_idx].path).convert("RGB")
-            ax.imshow(Image.open(corpus_df.iloc[img_idx].path).convert("RGB"))
+            ax.imshow(load_rgb(corpus_df.iloc[img_idx].path))
         except Exception:
             pass
         ax.set_title(f"cos={sim_matrix[img_idx, c_idx]:.3f}", fontsize=8)
@@ -494,7 +517,7 @@ for row, query in enumerate(QUERIES):
     for col, (i, s) in enumerate(zip(idx, scores)):
         ax = axes[row, col]
         try:
-            ax.imshow(Image.open(corpus_df.iloc[i].path).convert("RGB"))
+            ax.imshow(load_rgb(corpus_df.iloc[i].path))
         except Exception:
             pass
         ax.set_title(f"{s:.3f}", fontsize=8)
@@ -633,7 +656,10 @@ metrics = {
     "threshold": {"criterio": "margem sobre prompt neutro, percentil 90", "delta": float(DELTA)},
     "n_conceitos": len(CONCEPTS),
     "n_consultas": len(QUERIES),
+    "n_imgs_com_transparencia": int(n_alpha),
+    "sanity_zero_shot_acc": float(_acc_cat),
     "tokenizacao": {"clip_max_len": 77, "diff_clip_padding": diff_clip,
+                    "diff_clip_nomask": float(diff_clip_nomask),
                     "diff_bert_mask_maxabs": diff_bert.max().item()},
     "ram": ram_stats(),
     "vram_pico_mb": None if not torch.cuda.is_available() else round(torch.cuda.max_memory_allocated() / 2**20),
