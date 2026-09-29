@@ -138,7 +138,7 @@ Base de código: `../../Aula-1/aula_01_cnn_architectures.ipynb` (seção 5, feat
 - [ ] **3.2, análise escrita**: para cada opção (a) geométrica, (b) cor, (c) escala, (d) normalização, dizer se ajuda neste dataset e **para quais classes pode distorcer ou prejudicar** (ex.: grayscale em classes que se distinguem pela cor, flip em classes com orientação ou texto). Pelo menos 3 estratégias com justificativa de domínio. **Rubrica 1.3**
 - [ ] Discussão escrita: **feature extraction vs. fine-tuning** conforme o tamanho e o domínio do dataset (proximidade com o ImageNet, risco de overfitting, custo). **Rubrica 1.4**
 
-**Gate 1**: métricas, curvas, checklist 1.1–1.5.
+**Gate 1**: métricas, curvas, checklist 1.1–1.5. **✅ APROVADO** (rubrica 1.1–1.5 PASSA na revisão adversarial; ver linha de status na seção 6 — sem registro de uma data/aprovação explícita de Gilmar em `docs/decisoes.md`, diferente dos gates 2–5).
 
 ---
 
