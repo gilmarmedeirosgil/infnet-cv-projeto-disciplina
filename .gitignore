@@ -29,3 +29,4 @@ relatorio/figuras/A2_*
 docs/base_conhecimento/
 docs/PLANO_PROJETO.md
 agents/
+notebooks/00_smoke_test.ipynb
