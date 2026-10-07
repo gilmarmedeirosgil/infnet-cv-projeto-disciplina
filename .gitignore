@@ -24,3 +24,6 @@ entregas/
 
 # figuras com imagens do ADS-16 (licença proíbe redistribuição)
 relatorio/figuras/A2_*
+
+# base de conhecimento local (fora do repositório)
+docs/base_conhecimento/
