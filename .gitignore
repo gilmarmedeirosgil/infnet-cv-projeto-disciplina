@@ -30,3 +30,4 @@ docs/base_conhecimento/
 docs/PLANO_PROJETO.md
 agents/
 notebooks/00_smoke_test.ipynb
+notebooks/src/00_smoke_test.py
